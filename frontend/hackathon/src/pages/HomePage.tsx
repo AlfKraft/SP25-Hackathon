@@ -1,10 +1,46 @@
+import { useHackathon } from '@/contexts/HackathonContext'
+
 export default function HomePage() {
+  const { currentHackathon } = useHackathon();
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-4">Welcome to the Home Page</h1>
-      <p className="text-lg text-muted-foreground">
-        This is the home page of your application.
-      </p>
+    <div className="space-y-6">
+      {currentHackathon && ( 
+        <div className="bg-card border rounded-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4">Current Hackathon: {currentHackathon.name}</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-medium mb-2">Hackathon Details</h3>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-medium">Description:</span> {currentHackathon.description}</p>
+                <p><span className="font-medium">Theme:</span> {currentHackathon.theme}</p>
+                <p><span className="font-medium">Location:</span> {currentHackathon.location}</p>
+                <p><span className="font-medium">Start Date:</span> {currentHackathon.startDate.toLocaleDateString()}</p>
+                <p><span className="font-medium">End Date:</span> {currentHackathon.endDate.toLocaleDateString()}</p>
+                <p><span className="font-medium">Status:</span> 
+                  <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                    currentHackathon.status === 'upcoming' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                    currentHackathon.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                    'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                  }`}>
+                    {currentHackathon.status}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!currentHackathon && (
+        <div className="bg-card border rounded-lg p-6 text-center">
+          <h2 className="text-xl font-semibold mb-2">No Hackathon Selected</h2>
+          <p className="text-muted-foreground">
+            Use the dropdown in the navigation to select a hackathon or create a new Hackathon.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
