@@ -64,12 +64,12 @@ export default function Navbar() {
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
-            <Link to="/about">About</Link>
+            <Link to="/participants">Participants</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
-            <Link to="/contact">Contact</Link>
+            <Link to="/team-builder">Team builder</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

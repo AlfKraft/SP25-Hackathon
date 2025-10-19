@@ -1,7 +1,18 @@
 import { useHackathon } from '@/contexts/HackathonContext'
-
+import { Button } from '@/components/ui/button'
+import { useState } from 'react'
+import CSVUploadPopup from '@/components/features/CSVUploadPopup'
 export default function HomePage() {
   const { currentHackathon } = useHackathon();
+  const [showCSVPopup, setShowCSVPopup] = useState(false);
+
+  const handleUploadParticipants = () => {
+    setShowCSVPopup(true);
+  }
+
+  const handleCSVUploadComplete = () => {
+    setShowCSVPopup(false);
+  }
 
   return (
     <div className="space-y-6">
@@ -29,7 +40,20 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
+            
+            {currentHackathon.participants.length === 0 && (
+              <div className="flex flex-col items-center justify-center gap-2 gap-y-4">
+                <h3 className="text-lg font-medium mb-2">No participants yet</h3>
+                <p className="text-muted-foreground">
+                  There are no participants yet for this hackathon.
+                </p>
+                <Button onClick={handleUploadParticipants}>
+                  Click here to upload participants
+                </Button>
+              </div>
+            )}
           </div>
+          
         </div>
       )}
 
@@ -40,6 +64,13 @@ export default function HomePage() {
             Use the dropdown in the navigation to select a hackathon or create a new Hackathon.
           </p>
         </div>
+      )}
+
+      {showCSVPopup && (
+        <CSVUploadPopup 
+          onClose={() => setShowCSVPopup(false)}
+          onUploadComplete={handleCSVUploadComplete}
+        />
       )}
     </div>
   )

@@ -1,0 +1,7 @@
+email,skills,motivation
+john@example.com,"Java;SQL","Love hackathons"
+jane@sample.org,"Python;Data","Ready to help"
+not-an-email,"",""
+missingatsymbol.com,"Go","Excited"
+alex@example.com,"Kotlin;Android",""
+mia@example.org,,"Ship cool stuff"

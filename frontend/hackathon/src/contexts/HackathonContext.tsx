@@ -40,24 +40,7 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
       maxParticipants: 100,
       status: 'upcoming',
       participants: [
-        {
-          id: 'p1',
-          name: 'Alice Johnson',
-          email: 'alice@example.com',
-          motivation: 'I want to create a sustainable technology solution',
-          idea: true,
-          ideaName: 'Sustainable Technology Solution',
-          skills: ['React', 'Python', 'Machine Learning'],
-        },
-        {
-          id: 'p2',
-          name: 'Bob Smith',
-          email: 'bob@example.com',
-          motivation: 'I want to create a sustainable technology solution',
-          idea: true,
-          ideaName: 'Sustainable Technology Solution',
-          skills: ['Figma', 'UI/UX', 'Prototyping'],
-        }
+        
       ]
     },
     {
