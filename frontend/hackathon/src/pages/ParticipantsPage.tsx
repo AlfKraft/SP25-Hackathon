@@ -11,10 +11,48 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/in
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { SearchIcon, ArrowUpDown, Filter } from 'lucide-react'
+import { SearchIcon, ArrowUpDown, Filter, Edit, Save, X, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import type { Participant } from '@/types/hackathon'
 
 export default function ParticipantsPage() {
-  const { currentHackathon } = useHackathon()
+  const { currentHackathon, updateParticipant } = useHackathon()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<Partial<Participant>>({})
+
+  const handleEdit = (participant: Participant) => {
+    setEditingId(participant.id)
+    setEditData({
+      email: participant.email,
+      skills: participant.skills,
+      motivation: participant.motivation
+    })
+  }
+
+  const handleSave = (participantId: string) => {
+    if (editData.email || editData.motivation || editData.skills) {
+      updateParticipant(participantId, editData)
+    }
+    setEditingId(null)
+    setEditData({})
+  }
+
+  const handleCancel = () => {
+    setEditingId(null)
+    setEditData({})
+  }
+
+  const handleFieldChange = (field: keyof Participant, value: string | string[]) => {
+    setEditData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleDelete = (participantId: string) => {
+    // TODO: Implement delete logic when backend endpoint is available
+    console.log('Delete participant:', participantId)
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -104,14 +142,89 @@ export default function ParticipantsPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Skills</TableHead>
                 <TableHead>Motivation</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentHackathon.participants.map((participant) => (
                 <TableRow key={participant.id}>
-                  <TableCell>{participant.email}</TableCell>
-                  <TableCell>{participant.skills.join(', ')}</TableCell>
-                  <TableCell>{participant.motivation}</TableCell>
+                  <TableCell>
+                    {editingId === participant.id ? (
+                      <input
+                        type="email"
+                        value={editData.email || ''}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                    ) : (
+                      participant.email
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === participant.id ? (
+                      <input
+                        type="text"
+                        value={editData.skills?.join(', ') || ''}
+                        onChange={(e) => handleFieldChange('skills', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                        placeholder="Enter skills separated by commas"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                    ) : (
+                      participant.skills.join(', ')
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === participant.id ? (
+                      <textarea
+                        value={editData.motivation || ''}
+                        onChange={(e) => handleFieldChange('motivation', e.target.value)}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm resize-none"
+                      />
+                    ) : (
+                      participant.motivation
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === participant.id ? (
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSave(participant.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Save className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancel}
+                          className="h-8 w-8 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(participant)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(participant.id)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
