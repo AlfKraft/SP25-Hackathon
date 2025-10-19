@@ -1,0 +1,6 @@
+First Name,Last Name,Email,Has Team,Will Present Idea,Idea Name,Problem,motivation,field_of_interest,role,skills,age,gender,education,years_experience
+Alice,Johnson,alice@example.com,No,Yes,SmartBin,"Too much household waste without sorting",85,"Environmental Technology","UI/UX Designer","Figma,Adobe Creative Suite,User Research",25,Female,"Bachelor's in Design",3
+Bob,Smith,bob@example.com,No,Yes,EcoTracker,"Difficulty tracking personal carbon footprint",92,"Climate Tech","Full Stack Developer","React,Node.js,Python,PostgreSQL",28,Male,"Bachelor's in Computer Science",5
+Carol,Williams,carol@example.com,Yes,No,HealthApp,"Lack of personalized health monitoring",78,"Health Technology","Data Scientist","Python,R,SQL,Machine Learning",30,Female,"Master's in Data Science",4
+David,Brown,david@example.com,No,Yes,EdTech,"Students struggle with personalized learning",88,"Educational Technology","Backend Developer","Java,Spring Boot,Microservices,Docker",27,Male,"Bachelor's in Software Engineering",4
+Emma,Davis,emma@example.com,Yes,Yes,FinTech,"Small businesses lack access to financial tools",95,"Financial Technology","Product Manager","Agile,Scrum,User Stories,Analytics",29,Female,"MBA in Technology Management",6
