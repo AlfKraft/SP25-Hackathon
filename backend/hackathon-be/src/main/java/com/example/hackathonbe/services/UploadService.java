@@ -1,6 +1,6 @@
 package com.example.hackathonbe.services;
 
-import com.example.hackathonbe.upload.model.ErrorCode;
+import com.example.hackathonbe.upload.model.Keys;
 import com.example.hackathonbe.upload.model.ParticipantPreviewRow;
 import com.example.hackathonbe.upload.model.ValidationReport;
 import com.example.hackathonbe.upload.parse.CsvParser;
@@ -11,125 +11,121 @@ import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 public class UploadService {
 
     private final PreviewCache cache = new PreviewCache();
-    private final EmailValidator emailValidator = EmailValidator.getInstance();
-
-    private static final Set<String> REQUIRED_HEADERS = Set.of("email", "skills", "motivation");
 
     public ValidationReport validate(MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+            return new ValidationReport(null, 0, 0, 0, List.of());
         }
 
-        final String filename = Optional.of(file.getOriginalFilename()).orElse("");
-        final String ext = extractExt(filename);
+        final String ext = extractExt(file.getOriginalFilename());
+        final SpreadsheetParser parser = switch (ext) {
+            case "csv"  -> new CsvParser();
+            case "xlsx", "xlsm" -> new XlsxParser();
+            default -> null;
+        };
 
-        final List<ParticipantPreviewRow> rows = getParticipantPreviewRows(file, ext);
-
-        // No rows parsed → treat as missing header/content
-        if (rows.isEmpty()) {
+        if (parser == null) {
             return new ValidationReport(
                     null, 0, 0, 0,
-                    List.of(new ValidationReport.TopError(ErrorCode.MISSING_HEADER.name(), 1L))
+                    List.of(new ValidationReport.TopError("UNSUPPORTED_FILE_TYPE", 1))
             );
         }
 
-        // Header validation
-        final Set<String> headers = rows.get(0).fields().keySet().stream()
-                .map(String::toLowerCase)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-        final List<ErrorCode> headerErrors = new ArrayList<>();
-        for (String req : REQUIRED_HEADERS) {
-            if (!headers.contains(req)) {
-                headerErrors.add(ErrorCode.MISSING_HEADER);
-            }
-        }
-
-        // Row validation
-        final List<ParticipantPreviewRow> validated = new ArrayList<>(rows.size());
-        final List<ErrorCode> rowErrors = new ArrayList<>();
-        int valid = 0;
-
-        for (ParticipantPreviewRow r : rows) {
-            boolean ok = headerErrors.isEmpty();
-            final String email = get(r, "email");
-            final String skills = get(r, "skills");
-            final String motivation = get(r, "motivation");
-
-            if (email.isBlank() || !emailValidator.isValid(email)) {
-                rowErrors.add(ErrorCode.INVALID_EMAIL);
-                ok = false;
-            }
-            if (skills.isBlank()) {
-                rowErrors.add(ErrorCode.MISSING_SKILLS);
-                ok = false;
-            }
-            if (motivation.isBlank()) {
-                rowErrors.add(ErrorCode.EMPTY_MOTIVATION);
-                ok = false;
-            }
-
-            if (ok) valid++;
-            validated.add(new ParticipantPreviewRow(r.fields(), ok));
-        }
-
-        final int total = validated.size();
-        final int invalid = total - valid;
-
-        final Map<ErrorCode, Long> counts = new ArrayList<ErrorCode>() {{
-            addAll(headerErrors);
-            addAll(rowErrors);
-        }}.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-
-        final List<ValidationReport.TopError> top = counts.entrySet().stream()
-                .sorted(Map.Entry.<ErrorCode, Long>comparingByValue().reversed())
-                .limit(3)
-                .map(e -> new ValidationReport.TopError(e.getKey().name(), e.getValue()))
-                .toList();
-
-        final UUID id = cache.put(validated);
-        return new ValidationReport(id, total, valid, invalid, top);
-    }
-
-    private static List<ParticipantPreviewRow> getParticipantPreviewRows(MultipartFile file, String ext) throws Exception {
-        final SpreadsheetParser parser = switch (ext) {
-            case "csv" -> new CsvParser();
-            case "xlsx", "xlsm", "xls" -> new XlsxParser();
-            default -> throw new IllegalArgumentException("Unsupported file type: " + (ext.isBlank() ? "<none>" : ext));
-        };
-
-        final List<ParticipantPreviewRow> rows;
+        List<ParticipantPreviewRow> rows;
         try (InputStream in = file.getInputStream()) {
             rows = parser.parse(in);
-        } catch (IllegalArgumentException iae) {
-            throw iae;
-        } catch (IOException ioe) {
-            throw new IllegalArgumentException("Unsupported or corrupt file", ioe);
         }
-        return rows;
+
+        List<ParticipantPreviewRow> normalized = new ArrayList<>(rows.size());
+        for (ParticipantPreviewRow r : rows) {
+            boolean valid = softValid(r.fields());
+            normalized.add(new ParticipantPreviewRow(r.fields(), valid));
+        }
+
+        Set<String> presentHeaders = normalized.stream()
+                .flatMap(r -> r.fields().keySet().stream())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        Map<String, Long> top = new LinkedHashMap<>();
+
+        if (!Keys.REQUIRED_MIN.isEmpty()) {
+            Set<String> missing = new LinkedHashSet<>(Keys.REQUIRED_MIN);
+            missing.removeAll(presentHeaders);
+            if (!missing.isEmpty()) {
+                top.merge("MISSING_HEADER", 1L, Long::sum);
+            }
+        }
+
+        Set<String> unknown = presentHeaders.stream()
+                .filter(h -> !Keys.KNOWN.contains(h))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (!unknown.isEmpty()) {
+            top.merge("UNKNOWN_HEADER", (long) unknown.size(), Long::sum);
+        }
+
+        for (ParticipantPreviewRow row : normalized) {
+            String email = nz(row.fields().get("email"));
+            if (!email.isBlank() && !EmailValidator.getInstance().isValid(email)) {
+                top.merge("INVALID_EMAIL", 1L, Long::sum);
+            }
+
+            String age = nz(row.fields().get("age"));
+            if (!age.isBlank() && !age.matches("^\\d{1,3}$")) {
+                top.merge("INVALID_VALUE:age", 1L, Long::sum);
+            }
+        }
+
+        int total = normalized.size();
+        int valid = (int) normalized.stream().filter(ParticipantPreviewRow::valid).count();
+        int invalid = total - valid;
+
+        UUID previewId = cache.put(normalized);
+
+        List<ValidationReport.TopError> topErrors = top.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .map(e -> new ValidationReport.TopError(e.getKey(), e.getValue()))
+                .toList();
+
+        return new ValidationReport(previewId, total, valid, invalid, topErrors);
     }
+
+
+
+    private static boolean softValid(Map<String, String> f) {
+        boolean ok = true;
+
+        if (f.containsKey("first_name")) ok &= notBlank(f.get("first_name"));
+        if (f.containsKey("last_name"))  ok &= notBlank(f.get("last_name"));
+
+        if (f.containsKey("email")) {
+            String email = nz(f.get("email"));
+            ok &= email.isBlank() || EmailValidator.getInstance().isValid(email);
+        }
+
+        // Example: if they say they'll present, require minimal idea info
+        if ("yes".equalsIgnoreCase(nz(f.get("will_present_idea")))) {
+            ok &= !nz(f.get("idea_name")).isBlank();
+            ok &= !nz(f.get("problem")).isBlank();
+        }
+
+        return ok;
+    }
+
+    private static boolean notBlank(String s) { return s != null && !s.isBlank(); }
+
+    private static String nz(String s) { return s == null ? "" : s; }
 
     private static String extractExt(String filename) {
-        final String lower = filename.toLowerCase(Locale.ROOT);
-        final int dot = lower.lastIndexOf('.');
+        String lower = filename.toLowerCase(Locale.ROOT);
+        int dot = lower.lastIndexOf('.');
         return dot >= 0 ? lower.substring(dot + 1) : "";
-    }
-
-    private static String get(ParticipantPreviewRow row, String key) {
-        return Optional.ofNullable(row.fields().get(key))
-                .map(String::trim)
-                .orElse("")
-                .toLowerCase(Locale.ROOT)
-                .strip();
     }
 }
