@@ -19,7 +19,7 @@ jobs:
 
       - name: Build & Test
         working-directory: backend/hackathon-be
-        run: ./mvnw -B verify
+        run: ./mvnw -B verify -Dspring.profiles.active=test
 
       - name: Locate JAR
         id: jar
