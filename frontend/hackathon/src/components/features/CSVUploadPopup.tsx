@@ -6,12 +6,43 @@ interface CSVUploadPopupProps {
   onUploadComplete: () => void
 }
 
+interface ValidationError {
+  rowNumber: number
+  columnNumber: number | null
+  key: string
+  header: string
+  code: string
+  value: any
+}
+
+interface ValidationResponse {
+  batchPreviewId: string
+  totalRows: number
+  validRows: number
+  invalidRows: number
+  topErrorCodes: Array<{
+    code: string
+    count: number
+  }>
+  errors: ValidationError[]
+}
+
 export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadPopupProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error' | 'validation'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [validationData, setValidationData] = useState<ValidationResponse | null>(null)
+  const [currentPage, setCurrentPage] = useState<'upload' | 'validation'>('upload')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const mapErrorCode = (code: string): string => {
+    const errorMap: Record<string, string> = {
+      'MISSING_HEADER': 'Missing Header',
+      'UNKNOWN_HEADER': 'Unknown Header'
+    }
+    return errorMap[code] || code
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -33,17 +64,31 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
     setErrorMessage('')
 
     try {
-      // TODO: Replace with actual backend API call
       const formData = new FormData()
-      formData.append('csvFile', selectedFile)
+      formData.append('file', selectedFile)
       
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/upload/validate', {
+        method: 'POST',
+            body: formData,
+            mode: 'cors',
+      })
+      const data = await response.json()
+      console.log(data, "data")
       
-      setUploadStatus('success')
-      setTimeout(() => {
-        onUploadComplete()
-      }, 1500)
+      // Handle validation response
+      if (data.batchPreviewId) {
+        setValidationData(data)
+        setUploadStatus('validation')
+        setCurrentPage('validation')
+      } else if (data.success) {
+        setUploadStatus('success')
+        setTimeout(() => {
+          onUploadComplete()
+        }, 1500)
+      } else {
+        setUploadStatus('error')
+        setErrorMessage(data.message || 'Upload failed')
+      }
     } catch (error) {
       console.error('Error uploading CSV:', error)
       setUploadStatus('error')
@@ -69,20 +114,8 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Upload Participants CSV</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="space-y-4">
+  const renderUploadPage = () => (
+    <div className="space-y-4">
           <div
             className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors"
             onDragOver={handleDragOver}
@@ -158,23 +191,110 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
             </div>
           )}
 
-          <div className="flex gap-3">
+
+          <div className="flex justify-end gap-3">
+            
             <Button
               onClick={handleUpload}
               disabled={!selectedFile || isUploading}
-              className="flex-1"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             >
               {isUploading ? 'Uploading...' : 'Upload'}
             </Button>
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
+          </div>
+    </div>
+  )
+
+  const renderValidationPage = () => (
+    <div className="space-y-4">
+      {validationData && (
+        <>
+          <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+            <div className="text-center">
+              <div className="font-medium text-gray-900">{validationData.totalRows}</div>
+              <div className="text-gray-600">Total Rows</div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-green-600">{validationData.validRows}</div>
+              <div className="text-gray-600">Valid Rows</div>
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-red-600">{validationData.invalidRows}</div>
+              <div className="text-gray-600">Invalid Rows</div>
+            </div>
+          </div>
+
+          {validationData.errors.length > 0 && (
+            <div>
+              <h4 className="font-medium text-yellow-800 mb-2">Errors Found:</h4>
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {validationData.errors.map((error, index) => (
+                  <div key={index} className="bg-white rounded p-2 text-xs border">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="font-medium text-black">Row {error.rowNumber}</span>
+                        {error.columnNumber && <span className="ml-2">Column {error.columnNumber}</span>}
+                      </div>
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
+                        {mapErrorCode(error.code)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-gray-600">
+                      <span className="font-medium">Header:</span> {error.header}
+                      {error.key && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span className="font-medium">Field:</span> {error.key}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button 
+              
+              onClick={() => {
+                setCurrentPage('upload')
+                setUploadStatus('idle')
+                setValidationData(null)
+              }}
+              className="w-1/2 bg-red-600 hover:bg-red-700 text-white border-red-600"
             >
-              Cancel
+              Back
+            </Button>
+            <Button 
+              onClick={() => onUploadComplete()}
+              disabled={validationData?.errors.length > 0}
+              className="w-1/2 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              Continue
             </Button>
           </div>
+        </>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-black">
+            {currentPage === 'upload' ? 'Upload Participants CSV' : 'CSV Validation Results'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-xl"
+          >
+            ×
+          </button>
         </div>
+
+        {currentPage === 'upload' ? renderUploadPage() : renderValidationPage()}
       </div>
     </div>
   )
