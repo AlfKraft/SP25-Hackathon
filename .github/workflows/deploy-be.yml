@@ -17,29 +17,44 @@ jobs:
           java-version: '21'
           cache: maven
 
+      # 1) ensure wrapper is executable
+      - name: Make mvnw executable
+        working-directory: backend/hackathon-be
+        run: chmod +x ./mvnw
+
+      # run tests with the test profile
       - name: Build & Test
         working-directory: backend/hackathon-be
         run: ./mvnw -B verify -Dspring.profiles.active=test
 
+      # 2) emit an ABSOLUTE jar path
       - name: Locate JAR
         id: jar
-        working-directory: backend/hackathon-be
         run: |
-          JAR=$(ls target/*.jar | head -n1)
-          echo "jar=$JAR" >> $GITHUB_OUTPUT
+          JAR=$(ls -1 "$GITHUB_WORKSPACE/backend/hackathon-be/target/"*.jar | head -n1)
+          echo "jar=$JAR" >> "$GITHUB_OUTPUT"
 
       - name: Add SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
+      # 3) upload to /tmp, then sudo-move & chown into /opt
       - name: Upload JAR & switch symlink
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'sudo mkdir -p ${{ secrets.APP_PATH }}/releases'
           TS=$(date +%Y%m%d-%H%M%S)
-          scp -o StrictHostKeyChecking=no "${{ steps.jar.outputs.jar }}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.APP_PATH }}/releases/hackathon-api-${TS}.jar
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo ln -sf ${{ secrets.APP_PATH }}/releases/hackathon-api-${TS}.jar ${{ secrets.APP_PATH }}/hackathon-api.jar"
+          scp -o StrictHostKeyChecking=no "${{ steps.jar.outputs.jar }}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/hackathon-api-${TS}.jar
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "\
+            sudo mv /tmp/hackathon-api-${TS}.jar ${{ secrets.APP_PATH }}/releases/ && \
+            sudo chown app:app ${{ secrets.APP_PATH }}/releases/hackathon-api-${TS}.jar && \
+            sudo chmod 0644 ${{ secrets.APP_PATH }}/releases/hackathon-api-${TS}.jar && \
+            sudo ln -sfn ${{ secrets.APP_PATH }}/releases/hackathon-api-${TS}.jar ${{ secrets.APP_PATH }}/hackathon-api.jar"
 
       - name: Restart service
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'sudo systemctl restart hackathon && sleep 3 && sudo systemctl is-active --quiet hackathon'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '\
+            sudo systemctl daemon-reload; \
+            sudo systemctl restart hackathon; \
+            sleep 3; \
+            sudo systemctl is-active --quiet hackathon || (sudo systemctl status hackathon --no-pager -l; sudo journalctl -u hackathon -n 200 --no-pager; exit 1)'
