@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 
 interface CSVUploadPopupProps {
   onClose: () => void
-  onUploadComplete: () => void
+  onUploadComplete: (previewId: string) => void
 }
 
 interface ValidationError {
@@ -75,7 +75,6 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
       const data = await response.json()
       console.log(data, "data")
       
-      // Handle validation response
       if (data.batchPreviewId) {
         setValidationData(data)
         setUploadStatus('validation')
@@ -83,7 +82,7 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
       } else if (data.success) {
         setUploadStatus('success')
         setTimeout(() => {
-          onUploadComplete()
+          onUploadComplete(data.batchPreviewId)
         }, 1500)
       } else {
         setUploadStatus('error')
@@ -267,11 +266,11 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
               Back
             </Button>
             <Button 
-              onClick={() => onUploadComplete()}
-              disabled={validationData?.errors.length > 0}
+              onClick={() => onUploadComplete(validationData?.batchPreviewId)}
+              disabled={validationData?.errors.length > 0 || !validationData?.batchPreviewId}
               className="w-1/2 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Continue
+              Confirm
             </Button>
           </div>
         </>

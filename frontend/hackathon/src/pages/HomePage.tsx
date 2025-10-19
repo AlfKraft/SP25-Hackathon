@@ -2,6 +2,7 @@ import { useHackathon } from '@/contexts/HackathonContext'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import CSVUploadPopup from '@/components/features/CSVUploadPopup'
+import { toast } from 'sonner'
 export default function HomePage() {
   const { currentHackathon } = useHackathon();
   const [showCSVPopup, setShowCSVPopup] = useState(false);
@@ -10,8 +11,22 @@ export default function HomePage() {
     setShowCSVPopup(true);
   }
 
-  const handleCSVUploadComplete = () => {
-    setShowCSVPopup(false);
+  const handleCSVUploadComplete = async (previewId: string) => {
+    try {
+      const formData = new FormData()
+      formData.append('previewId', previewId)
+      const response = await fetch(`http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/uploads/import`, {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await response.json()
+      console.log(data, "data")
+    } catch (error) {
+      console.error('Error importing participants:', error)
+    } finally {
+      setShowCSVPopup(false)
+      toast.success('Participants imported successfully')
+    }
   }
 
   return (
