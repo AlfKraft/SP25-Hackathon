@@ -22,110 +22,125 @@ public class UploadService {
 
     public ValidationReport validate(MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) {
-            return new ValidationReport(null, 0, 0, 0, List.of());
+            return new ValidationReport(null,0,0,0,List.of(), List.of());
         }
 
-        final String ext = extractExt(file.getOriginalFilename());
-        final SpreadsheetParser parser = switch (ext) {
-            case "csv"  -> new CsvParser();
-            case "xlsx", "xlsm" -> new XlsxParser();
+        SpreadsheetParser parser = switch (ext(file.getOriginalFilename())) {
+            case "csv" -> new CsvParser();
+            case "xlsx","xlsm" -> new XlsxParser();
             default -> null;
         };
-
         if (parser == null) {
-            return new ValidationReport(
-                    null, 0, 0, 0,
-                    List.of(new ValidationReport.TopError("UNSUPPORTED_FILE_TYPE", 1))
-            );
+            return new ValidationReport(null,0,0,0,
+                    List.of(new ValidationReport.TopError("UNSUPPORTED_FILE_TYPE",1)), List.of());
         }
 
-        List<ParticipantPreviewRow> rows;
+        List<ParticipantPreviewRow> parsed;
         try (InputStream in = file.getInputStream()) {
-            rows = parser.parse(in);
+            parsed = parser.parse(in);
         }
 
-        List<ParticipantPreviewRow> normalized = new ArrayList<>(rows.size());
-        for (ParticipantPreviewRow r : rows) {
-            boolean valid = softValid(r.fields());
-            normalized.add(new ParticipantPreviewRow(r.fields(), valid));
-        }
+        Map<String,Long> top = new LinkedHashMap<>();
+        List<ValidationReport.CellError> cells = new ArrayList<>();
+        List<ParticipantPreviewRow> normalized = new ArrayList<>(parsed.size());
 
-        Set<String> presentHeaders = normalized.stream()
+        // Collect present keys to compute UNKNOWN_HEADER and (optional) MISSING_HEADER
+        Set<String> present = parsed.stream()
                 .flatMap(r -> r.fields().keySet().stream())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        Map<String, Long> top = new LinkedHashMap<>();
+        // UNKNOWN_HEADER: report at column level (row 1)
+        for (ParticipantPreviewRow r : parsed) {
+            for (var e : r.keyToHeader().entrySet()) {
+                String key = e.getKey();
+                if (!Keys.KNOWN.contains(key)) {
+                    int col = Optional.ofNullable(r.keyToColumn().get(key)).orElse(null);
+                    cells.add(new ValidationReport.CellError(
+                            1,                        // header row
+                            col,
+                            key,
+                            e.getValue(),            // original header
+                            "UNKNOWN_HEADER",
+                            null
+                    ));
+                }
+            }
+            break; // only need headers once
+        }
+        long unknownCount = present.stream().filter(k -> !Keys.KNOWN.contains(k)).count();
+        if (unknownCount > 0) top.merge("UNKNOWN_HEADER", unknownCount, Long::sum);
 
+        // Optional MISSING_HEADER
         if (!Keys.REQUIRED_MIN.isEmpty()) {
-            Set<String> missing = new LinkedHashSet<>(Keys.REQUIRED_MIN);
-            missing.removeAll(presentHeaders);
-            if (!missing.isEmpty()) {
+            Set<String> miss = new LinkedHashSet<>(Keys.REQUIRED_MIN);
+            miss.removeAll(present);
+            if (!miss.isEmpty()) {
+                for (String m : miss) {
+                    cells.add(new ValidationReport.CellError(
+                            1, null, m, m, "MISSING_HEADER", null
+                    ));
+                }
                 top.merge("MISSING_HEADER", 1L, Long::sum);
             }
         }
 
-        Set<String> unknown = presentHeaders.stream()
-                .filter(h -> !Keys.KNOWN.contains(h))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        if (!unknown.isEmpty()) {
-            top.merge("UNKNOWN_HEADER", (long) unknown.size(), Long::sum);
-        }
+        // Row by row checks
+        for (ParticipantPreviewRow r : parsed) {
+            var f = r.fields();
+            boolean ok = true;
 
-        for (ParticipantPreviewRow row : normalized) {
-            String email = nz(row.fields().get("email"));
+            // Email
+            String email = nz(f.get("email"));
             if (!email.isBlank() && !EmailValidator.getInstance().isValid(email)) {
-                top.merge("INVALID_EMAIL", 1L, Long::sum);
+                add(top, "INVALID_EMAIL");
+                cells.add(cell(r, "email", "INVALID_EMAIL", email));
+                ok = false; // your logic: invalid email -> invalid row
             }
 
-            String age = nz(row.fields().get("age"));
-            if (!age.isBlank() && !age.matches("^\\d{1,3}$")) {
-                top.merge("INVALID_VALUE:age", 1L, Long::sum);
+            // motivation: integer 0..100 (invalidate if bad)
+            String m = nz(f.get("motivation"));
+            if (!m.isBlank()) {
+                boolean goodInt = m.matches("^\\d{1,3}$");
+                Integer mv = null;
+                if (goodInt) mv = Integer.parseInt(m);
+                if (!goodInt || mv < 0 || mv > 100) {
+                    add(top, "INVALID_VALUE:motivation");
+                    cells.add(cell(r, "motivation", "INVALID_VALUE:motivation", m));
+                    ok = false;
+                }
             }
+
+            normalized.add(new ParticipantPreviewRow(f, ok, r.rowNumber(), r.keyToColumn(), r.keyToHeader()));
         }
 
         int total = normalized.size();
         int valid = (int) normalized.stream().filter(ParticipantPreviewRow::valid).count();
         int invalid = total - valid;
-
-        UUID previewId = cache.put(normalized);
+        UUID id = cache.put(normalized);
 
         List<ValidationReport.TopError> topErrors = top.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .sorted(Map.Entry.<String,Long>comparingByValue().reversed())
                 .map(e -> new ValidationReport.TopError(e.getKey(), e.getValue()))
                 .toList();
 
-        return new ValidationReport(previewId, total, valid, invalid, topErrors);
+        return new ValidationReport(id, total, valid, invalid, topErrors, cells);
     }
 
-
-
-    private static boolean softValid(Map<String, String> f) {
-        boolean ok = true;
-
-        if (f.containsKey("first_name")) ok &= notBlank(f.get("first_name"));
-        if (f.containsKey("last_name"))  ok &= notBlank(f.get("last_name"));
-
-        if (f.containsKey("email")) {
-            String email = nz(f.get("email"));
-            ok &= email.isBlank() || EmailValidator.getInstance().isValid(email);
-        }
-
-        // Example: if they say they'll present, require minimal idea info
-        if ("yes".equalsIgnoreCase(nz(f.get("will_present_idea")))) {
-            ok &= !nz(f.get("idea_name")).isBlank();
-            ok &= !nz(f.get("problem")).isBlank();
-        }
-
-        return ok;
+    /* --- helpers --- */
+    private static void add(Map<String,Long> top, String code){ top.merge(code, 1L, Long::sum); }
+    private static String nz(String s){ return s==null? "": s; }
+    private static ValidationReport.CellError cell(ParticipantPreviewRow r, String key, String code, String value){
+        Integer col = r.keyToColumn().get(key);
+        String hdr = r.keyToHeader().getOrDefault(key, key);
+        return new ValidationReport.CellError(r.rowNumber(), col, key, hdr, code, value);
     }
-
-    private static boolean notBlank(String s) { return s != null && !s.isBlank(); }
-
-    private static String nz(String s) { return s == null ? "" : s; }
-
-    private static String extractExt(String filename) {
-        String lower = filename.toLowerCase(Locale.ROOT);
-        int dot = lower.lastIndexOf('.');
-        return dot >= 0 ? lower.substring(dot + 1) : "";
+    private static String ext(String filename) {
+        if (filename == null) return "";
+        String name = filename.trim();
+        // strip any path (IE/old browsers sometimes include it)
+        int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+        if (slash >= 0) name = name.substring(slash + 1);
+        int dot = name.lastIndexOf('.');
+        return (dot < 0 || dot == name.length() - 1) ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 }
