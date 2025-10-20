@@ -1,14 +1,17 @@
 package com.example.hackathonbe.services;
 
-import com.example.hackathonbe.upload.model.Keys;
-import com.example.hackathonbe.upload.model.ParticipantPreviewRow;
-import com.example.hackathonbe.upload.model.ValidationReport;
+import com.example.hackathonbe.repositories.ParticipantRepository;
+import com.example.hackathonbe.upload.model.*;
 import com.example.hackathonbe.upload.parse.CsvParser;
 import com.example.hackathonbe.upload.parse.SpreadsheetParser;
 import com.example.hackathonbe.upload.parse.XlsxParser;
 import com.example.hackathonbe.upload.preview.PreviewCache;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.persistence.Cacheable;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
@@ -16,8 +19,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Cacheable
 public class UploadService {
-
+    private final ParticipantRepository participantRepository;
     private final PreviewCache cache = new PreviewCache();
 
     public ValidationReport validate(MultipartFile file) throws Exception {
@@ -54,7 +59,7 @@ public class UploadService {
             for (var e : r.keyToHeader().entrySet()) {
                 String key = e.getKey();
                 if (!Keys.KNOWN.contains(key)) {
-                    int col = Optional.ofNullable(r.keyToColumn().get(key)).orElse(null);
+                    int col = r.keyToColumn().get(key);
                     cells.add(new ValidationReport.CellError(
                             1,                        // header row
                             col,
@@ -142,5 +147,60 @@ public class UploadService {
         if (slash >= 0) name = name.substring(slash + 1);
         int dot = name.lastIndexOf('.');
         return (dot < 0 || dot == name.length() - 1) ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    @Transactional
+    public ImportSummary importValid(UUID previewId) {
+        List<ParticipantPreviewRow> rows = cache.get(previewId);
+        if (rows == null) return null;
+
+        int total = rows.size();
+        int skipped = 0;
+
+        List<ObjectNode> validJson = new ArrayList<>();
+        for (var r : rows) {
+            ObjectNode json = ParticipantJson.toJson(r.fields());
+            var errs = ParticipantJson.validate(json);
+            if (!errs.isEmpty()) { skipped++; continue; }
+            validJson.add(json);
+        }
+
+        // 2) dedupe by email (latest wins)
+        Map<String, ObjectNode> byEmail = new LinkedHashMap<>();
+        for (ObjectNode j : validJson) {
+            byEmail.put(j.get("email").asText().toLowerCase(Locale.ROOT), j);
+        }
+        int deduped = validJson.size() - byEmail.size();
+
+        // 3) fetch existing
+        Map<String, Participant> existing = participantRepository.findAllByEmailIn(byEmail.keySet()).stream()
+                .collect(Collectors.toMap(p -> p.getEmail().toLowerCase(Locale.ROOT), p -> p));
+
+        // 4) upsert (sync columns + jsonb)
+        int inserted = 0, updated = 0;
+        List<Participant> toSave = new ArrayList<>();
+        for (var e : byEmail.entrySet()) {
+            String email = e.getKey();
+            ObjectNode data = e.getValue();
+
+            Participant p = existing.get(email);
+            if (p == null) {
+                p = new Participant();
+                p.setEmail(email);
+                p.setFirstName(data.get("first_name").asText());
+                p.setLastName(data.get("last_name").asText());
+                p.setData(data); // store full JSON
+                inserted++;
+            } else {
+                p.setFirstName(data.get("first_name").asText());
+                p.setLastName(data.get("last_name").asText());
+                p.setData(data); // replace or merge; we replace for clarity
+                updated++;
+            }
+            toSave.add(p);
+        }
+        participantRepository.saveAll(toSave);
+
+        return new ImportSummary(total, inserted, updated, skipped, deduped);
     }
 }

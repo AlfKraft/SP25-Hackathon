@@ -1,5 +1,6 @@
 package com.example.hackathonbe;
 
+import com.example.hackathonbe.repositories.ParticipantRepository;
 import com.example.hackathonbe.services.UploadService;
 import com.example.hackathonbe.upload.model.ValidationReport;
 import org.junit.jupiter.api.DisplayName;
@@ -9,10 +10,11 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class UploadServiceTest {
 
-    private final UploadService service = new UploadService();
+    private final UploadService service = new UploadService(mock(ParticipantRepository.class));
 
     private static final String SAMPLE_CSV =
             String.join("\r\n",

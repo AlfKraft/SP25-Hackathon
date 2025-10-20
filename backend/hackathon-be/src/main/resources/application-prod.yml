@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:aws-rds-host}:${DB_PORT:5432}/${DB_NAME:appdb}?sslmode=require&currentSchema=public
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    hikari:
+      maximum-pool-size: 10
+  flyway:
+    baseline-on-migrate: true  # set true only if prod schema pre-exists before Flyway
