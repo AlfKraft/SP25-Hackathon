@@ -189,12 +189,12 @@ public class UploadService {
                 p.setEmail(email);
                 p.setFirstName(data.get("first_name").asText());
                 p.setLastName(data.get("last_name").asText());
-                p.setData(data); // store full JSON
+                p.setData(data);
                 inserted++;
             } else {
                 p.setFirstName(data.get("first_name").asText());
                 p.setLastName(data.get("last_name").asText());
-                p.setData(data); // replace or merge; we replace for clarity
+                p.setData(data);
                 updated++;
             }
             toSave.add(p);
