@@ -1,0 +1,9 @@
+First Name,Last Name,Email,Primary Role,Has Team,Will Present Idea,Idea Name,Problem
+Alice,Johnson,alice@example.com,Designer,No,Yes,SmartBin,"Too much household waste without sorting"
+Brian,Smith,brian.smith@example.org,Programmer,Yes,No,,""
+Carla,Gonzalez,,Business Expert,No,Yes,PlantMatch,"Difficulty connecting indoor plant sellers with customers"
+David,Lee,david.lee@example.com,Marketing,Yes,No,,
+Ella,Martinez,ella@example.com,Programmer,No,Yes,StudySphere,"Students struggle to find focused study groups"
+Frank,Anderson,frank.anderson@example.org,Designer,Yes,No,,
+Grace,Nguyen,grace.nguyen@example.net,Business Expert,No,Yes,MealWizard,"Healthy meal planning is hard for busy people"
+Henry,Brown,henry.brown@example.com,Programmer,No,Yes,CodeMentor,"Beginners lack guidance when learning programming"
