@@ -1,6 +1,6 @@
 package com.example.hackathonbe.controllers;
 
-import com.example.hackathonbe.DTO.ParticipantDto;
+import com.example.hackathonbe.dto.ParticipantDto;
 import com.example.hackathonbe.services.ParticipantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
