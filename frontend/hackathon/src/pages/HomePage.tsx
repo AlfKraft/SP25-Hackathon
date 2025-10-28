@@ -4,7 +4,7 @@ import { useState } from 'react'
 import CSVUploadPopup from '@/components/features/CSVUploadPopup'
 import { toast } from 'sonner'
 export default function HomePage() {
-  const { currentHackathon } = useHackathon();
+  const { currentHackathon, replaceCurrentHackathonParticipants } = useHackathon();
   const [showCSVPopup, setShowCSVPopup] = useState(false);
 
   const handleUploadParticipants = () => {
@@ -13,19 +13,66 @@ export default function HomePage() {
 
   const handleCSVUploadComplete = async (previewId: string) => {
     try {
-      const formData = new FormData()
-      formData.append('previewId', previewId)
-      const response = await fetch(`http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/uploads/import`, {
+      const response = await fetch('http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/upload/import', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          batchPreviewId: previewId
+        }),
       })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
       console.log(data, "data")
+
+      const participantsResp = await fetch('http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/participants/all', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      })
+
+      if (!participantsResp.ok) {
+        throw new Error(`Failed to fetch participants. status: ${participantsResp.status}`)
+      }
+
+      const participantsDto = await participantsResp.json()
+      const mappedParticipants = (participantsDto || []).map((p: any) => {
+        const data = p.data || {}
+        
+        const skills = Array.isArray(data.skills) 
+          ? data.skills.map((s: any) => String(s))
+          : []
+        
+        return {
+          id: String(p.id),
+          name: [p.firstName, p.lastName].filter(Boolean).join(' ').trim() || p.email,
+          email: p.email,
+          motivation: data.motivation ?? 0,
+          skills,
+          idea: false,
+          ideaName: data.ideaName ?? '',
+          fieldOfInterest: data.field_of_interest ?? '',
+          role: data.role ?? '',
+          age: data.age ?? 0,
+          gender: data.gender ?? '',
+          education: data.education ?? '',
+          yearsExperience: data.years_experience ?? 0,
+          hasTeam: data.hasTeam === 'Yes' || data.hasTeam === 'true',
+          problem: data.problem ?? false
+        }
+      })
+
+      replaceCurrentHackathonParticipants(mappedParticipants)
+      toast.success('Participants imported successfully')
     } catch (error) {
       console.error('Error importing participants:', error)
+      toast.error('Failed to import participants. Please try again.')
     } finally {
       setShowCSVPopup(false)
-      toast.success('Participants imported successfully')
     }
   }
 

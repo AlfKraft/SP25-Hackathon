@@ -14,9 +14,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { SearchIcon, ArrowUpDown, Filter, Edit, Save, X, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { Participant } from '@/types/hackathon'
+import { toast } from 'sonner'
 
 export default function ParticipantsPage() {
-  const { currentHackathon, updateParticipant } = useHackathon()
+  const { currentHackathon, updateParticipant, removeParticipant } = useHackathon()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editData, setEditData] = useState<Partial<Participant>>({})
 
@@ -50,8 +51,8 @@ export default function ParticipantsPage() {
   }
 
   const handleDelete = (participantId: string) => {
-    // TODO: Implement delete logic when backend endpoint is available
-    console.log('Delete participant:', participantId)
+    removeParticipant(participantId)
+    toast.success('Participant deleted successfully')
   }
 
   return (
@@ -142,6 +143,7 @@ export default function ParticipantsPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Skills</TableHead>
                 <TableHead>Motivation</TableHead>
+                <TableHead>Years of Experience</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -182,6 +184,17 @@ export default function ParticipantsPage() {
                       />
                     ) : (
                       participant.motivation
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === participant.id ? (
+                      <textarea
+                        value={editData.yearsExperience || ''}
+                        onChange={(e) => handleFieldChange('yearsExperience', e.target.value)}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm resize-none"
+                      />
+                    ) : (
+                      participant.yearsExperience
                     )}
                   </TableCell>
                   <TableCell>
