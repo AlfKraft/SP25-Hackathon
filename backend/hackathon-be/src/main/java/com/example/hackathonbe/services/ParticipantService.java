@@ -1,6 +1,6 @@
 package com.example.hackathonbe.services;
 
-import com.example.hackathonbe.DTO.ParticipantDto;
+import com.example.hackathonbe.dto.ParticipantDto;
 import com.example.hackathonbe.repositories.ParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.example.hackathonbe.DTO;
+package com.example.hackathonbe.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
