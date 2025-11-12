@@ -69,7 +69,7 @@ function convertTeamsToGraph(teams: Team[]): { nodes: Node[]; edges: Edge[] } {
 
       // Create edge from team to member
       edges.push({
-        id: `${teamNodeId}-${memberNodeId}`,
+        id: `from-${memberNodeId}`,
         source: teamNodeId,
         target: memberNodeId
       });
@@ -95,7 +95,23 @@ export default function TeambuilderPage() {
     [],
   );
   const onConnect = useCallback(
-    (params: Connection) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
+    (params: Connection) => {
+      if (!params.source || !params.target) return;
+      
+      const isMemberToTeam = params.source.startsWith('member-') && params.target.startsWith('team-') || params.source.startsWith('team-') && params.target.startsWith('member-');
+      const member = params.source.startsWith('member-') ? params.source : params.target.startsWith('member-') ? params.target : null;
+      
+      if (isMemberToTeam) {
+        setEdges((edgesSnapshot) => {
+          const filteredEdges = edgesSnapshot.filter(
+            (edge) => edge.source !== member && edge.target !== member
+          );
+          return addEdge(params, filteredEdges);
+        });
+      } else {
+        setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot));
+      }
+    },
     [],
   );
 
