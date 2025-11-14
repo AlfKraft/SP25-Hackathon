@@ -9,6 +9,7 @@ import com.example.hackathonbe.upload.preview.PreviewCache;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.Cacheable;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Cacheable
+@Slf4j
 public class UploadService {
     private final ParticipantRepository participantRepository;
     private final PreviewCache cache = new PreviewCache();
@@ -80,12 +82,14 @@ public class UploadService {
             Set<String> miss = new LinkedHashSet<>(Keys.REQUIRED_MIN);
             miss.removeAll(present);
             if (!miss.isEmpty()) {
+                Long count = (long) miss.size();
+                log.debug("Missing required headers: {}", miss);
                 for (String m : miss) {
                     cells.add(new ValidationReport.CellError(
                             1, null, m, m, "MISSING_HEADER", null
                     ));
                 }
-                top.merge("MISSING_HEADER", 1L, Long::sum);
+                top.merge("MISSING_HEADER", count, Long::sum);
             }
         }
 
