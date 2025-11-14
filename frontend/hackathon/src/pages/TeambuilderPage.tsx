@@ -51,7 +51,7 @@ function convertTeamsToGraph(teams: Team[]): { nodes: Node[]; edges: Edge[] } {
     const teamY = Math.floor(teamIndex / gridSize) * 600;
     
     team.members.forEach((member, memberIndex) => {
-      const memberNodeId = `member-${team.id}-${member.participantId}`;
+      const memberNodeId = `member/${team.id}/${member.participantId}`;
       const angle = (memberIndex / team.members.length) * 2 * Math.PI;
       const radius = 150;
       
@@ -97,10 +97,9 @@ export default function TeambuilderPage() {
   const onConnect = useCallback(
     (params: Connection) => {
       if (!params.source || !params.target) return;
-      
-      const isMemberToTeam = params.source.startsWith('member-') && params.target.startsWith('team-') || params.source.startsWith('team-') && params.target.startsWith('member-');
-      const member = params.source.startsWith('member-') ? params.source : params.target.startsWith('member-') ? params.target : null;
-      
+      const isMemberToTeam = params.source.startsWith('member') && params.target.startsWith('team-') || params.source.startsWith('team-') && params.target.startsWith('member');
+      const member = params.source.startsWith('member') ? params.source : params.target.startsWith('member') ? params.target : null;
+
       if (isMemberToTeam) {
         setEdges((edgesSnapshot) => {
           const filteredEdges = edgesSnapshot.filter(
@@ -137,14 +136,48 @@ export default function TeambuilderPage() {
     }
   }
 
+  const downloadTeams = () => {
+    const members = nodes.filter(node => node.id.startsWith('member'));
+    interface DownloadTeam {
+      team: string;
+      member: string;
+    }
+    const teams: DownloadTeam[] = [];
+    members.forEach(member => {
+      const connectedEdge = edges.find(edge => edge.source === member.id || edge.target === member.id);
+      if (connectedEdge) {
+        const teamNodeId = connectedEdge.source === member.id ? connectedEdge.target : connectedEdge.source;
+        const teamNode = nodes.find(node => node.id === teamNodeId);
+        const memberID = member.id.split('/')[2];
+        if (teamNode) {
+          teams.push({
+            team: teamNode.data.label as string,
+            member: memberID
+          });
+        }
+      }
+    });
 
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Team,Member\n" 
+      + teams.map(t => `${t.team},${t.member}`).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "teams.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
   
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-4">Team builder</h1>
-      <div className="flex gap-4 mb-4">
+      <div className="flex justify-between mb-4">
+        <div className='flex gap-4'>
         <Input 
           type="number" 
           value={teamSize} 
@@ -154,6 +187,11 @@ export default function TeambuilderPage() {
         <Button onClick={handleGenerateTeams} disabled={loading}>
           Generate Teams
         </Button>
+        </div>
+        <Button onClick={downloadTeams}>
+          Download Teams
+        </Button>
+
       </div>
       <div className="h-[600px] w-full border rounded-lg">
         <ReactFlow
