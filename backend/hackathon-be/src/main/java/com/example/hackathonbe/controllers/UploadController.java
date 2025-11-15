@@ -28,7 +28,7 @@ public class UploadController {
 
     @PostMapping(value="/import", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ImportSummary> importValid(@RequestBody ImportRequest body) {
-        if (body == null || body.getBatchPreviewId() == null || body.getBatchPreviewId().isBlank()) {
+        if (body == null || body.getBatchPreviewId() == null || body.getBatchPreviewId().isBlank() || body.getHackathonId() == null) {
             return ResponseEntity.badRequest().build();
         }
         final UUID previewId;
@@ -38,7 +38,7 @@ public class UploadController {
             return ResponseEntity.badRequest().build();
         }
 
-        ImportSummary summary = service.importValid(previewId);
+        ImportSummary summary = service.importValid(previewId, body.getHackathonId());
         if (summary == null) {
             return ResponseEntity.notFound().build();
         }
