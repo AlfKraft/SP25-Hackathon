@@ -46,12 +46,17 @@ public class Hackathon {
     private Instant updatedAt;
 
     // 🔽 CHANGED: Many-to-many via join table, no mappedBy
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "hackathon_participants",
             joinColumns = @JoinColumn(name = "hackathon_id"),
             inverseJoinColumns = @JoinColumn(name = "participant_id")
     )
     private Set<Participant> participants = new HashSet<>();
+
+    public void addParticipant(Participant p) {
+        this.participants.add(p);
+        p.getHackathons().add(this);
+    }
 }
 

@@ -1,5 +1,7 @@
 package com.example.hackathonbe.services;
 
+import com.example.hackathonbe.admin.model.Hackathon;
+import com.example.hackathonbe.admin.repositories.HackathonRepository;
 import com.example.hackathonbe.repositories.ParticipantRepository;
 import com.example.hackathonbe.upload.model.*;
 import com.example.hackathonbe.upload.parse.CsvParser;
@@ -8,6 +10,7 @@ import com.example.hackathonbe.upload.parse.XlsxParser;
 import com.example.hackathonbe.upload.preview.PreviewCache;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.Cacheable;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.EmailValidator;
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UploadService {
     private final ParticipantRepository participantRepository;
+    private final HackathonRepository hackathonRepository;
     private final PreviewCache cache = new PreviewCache();
 
     public ValidationReport validate(MultipartFile file) throws Exception {
@@ -154,7 +158,10 @@ public class UploadService {
     }
 
     @Transactional
-    public ImportSummary importValid(UUID previewId) {
+    public ImportSummary importValid(UUID previewId, Long hackathonId) {
+        Hackathon hackathon = hackathonRepository.findById(hackathonId)
+                .orElseThrow(() -> new EntityNotFoundException("Hackathon not found: " + hackathonId));
+
         List<ParticipantPreviewRow> rows = cache.get(previewId);
         if (rows == null) return null;
 
@@ -201,9 +208,12 @@ public class UploadService {
                 p.setData(data);
                 updated++;
             }
+
+            hackathon.addParticipant(p);
             toSave.add(p);
         }
-        participantRepository.saveAll(toSave);
+
+        hackathonRepository.save(hackathon);
 
         return new ImportSummary(total, inserted, updated, skipped, deduped);
     }
