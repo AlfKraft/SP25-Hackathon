@@ -1,5 +1,6 @@
 package com.example.hackathonbe.upload.model;
 
+import com.example.hackathonbe.admin.model.Hackathon;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
@@ -8,6 +9,8 @@ import lombok.Setter;
 import org.hibernate.annotations.Type;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "participants")
@@ -32,4 +35,7 @@ public class Participant {
 
     @Column(nullable = false, columnDefinition = "timestamptz")
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    @ManyToMany(mappedBy = "participants")
+    private Set<Hackathon> hackathons = new HashSet<>();
 }
