@@ -29,10 +29,6 @@ public class Participant {
     @Column(nullable = false)
     private String lastName;
 
-    @Type(JsonType.class)
-    @Column(columnDefinition = "jsonb", nullable = false)
-    private JsonNode data;
-
     @Column(nullable = false, columnDefinition = "timestamptz")
     private OffsetDateTime createdAt = OffsetDateTime.now();
 

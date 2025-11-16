@@ -2,6 +2,7 @@ package com.example.hackathonbe.importing.service;
 
 import com.example.hackathonbe.hackathon.model.*;
 import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
+import com.example.hackathonbe.hackathon.repositories.QuestionnaireAnswerRepository;
 import com.example.hackathonbe.hackathon.repositories.QuestionnaireRepository;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
@@ -35,6 +36,7 @@ public class UploadService {
     private final ParticipantRepository participantRepository;
     private final HackathonRepository hackathonRepository;
     private final QuestionnaireService questionnaireService;
+    private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
     private final PreviewCache cache = new PreviewCache();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -172,7 +174,7 @@ public class UploadService {
         List<ParticipantPreviewRow> rows = cache.get(previewId);
         if (rows == null) return null;
         JsonNode createdQuestionnaireJson = createExternalQuestionnaireJson(rows);
-        questionnaireService.saveExternalQuestionnaire(hackathon, createdQuestionnaireJson);
+        Questionnaire questionnaire = questionnaireService.saveExternalQuestionnaire(hackathon, createdQuestionnaireJson);
         int total = rows.size();
         int skipped = 0;
 
@@ -201,22 +203,30 @@ public class UploadService {
         for (var e : byEmail.entrySet()) {
             String email = e.getKey();
             ObjectNode data = e.getValue();
-
             Participant p = existing.get(email);
             if (p == null) {
                 p = new Participant();
                 p.setEmail(email);
                 p.setFirstName(data.get("first_name").asText());
                 p.setLastName(data.get("last_name").asText());
-                p.setData(data);
                 inserted++;
             } else {
                 p.setFirstName(data.get("first_name").asText());
                 p.setLastName(data.get("last_name").asText());
-                p.setData(data);
                 updated++;
             }
 
+            Optional<QuestionnaireAnswer> answer = questionnaireAnswerRepository.findByQuestionnaireAndParticipant(questionnaire, p);
+            QuestionnaireAnswer qa;
+            if (answer.isPresent()){
+                qa = answer.get();
+            } else {
+                qa = new QuestionnaireAnswer();
+                qa.setQuestionnaire(questionnaire);
+                qa.setParticipant(p);
+            }
+            qa.setData(data);
+            questionnaireAnswerRepository.save(qa);
             hackathon.addParticipant(p);
             toSave.add(p);
         }

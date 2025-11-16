@@ -16,7 +16,7 @@ import static org.mockito.Mockito.mock;
 
 class UploadServiceTest {
 
-    private final UploadService service = new UploadService(mock(ParticipantRepository.class), mock(HackathonRepository.class), mock(QuestionnaireService.class));
+    private final UploadService service = new UploadService(mock(ParticipantRepository.class), mock(HackathonRepository.class), mock(QuestionnaireService.class), null);
 
     private static final String SAMPLE_CSV =
             String.join("\r\n",
