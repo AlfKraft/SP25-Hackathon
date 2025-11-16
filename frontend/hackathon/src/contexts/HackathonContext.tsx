@@ -10,6 +10,7 @@ interface HackathonContextType {
   removeParticipant: (participantId: string) => void;
   updateParticipant: (participantId: string, updates: Partial<Participant>) => void;
   createHackathon: (hackathon: Omit<Hackathon, 'id' | 'participants'>) => void;
+  replaceCurrentHackathonParticipants: (participants: Participant[]) => void;
 }
 
 const HackathonContext = createContext<HackathonContextType | undefined>(undefined);
@@ -58,7 +59,7 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
           id: 'p3',
           name: 'Carol Davis',
           email: 'carol@example.com',
-          motivation: 'I want to create a sustainable technology solution',
+          motivation: 0,
           idea: true,
           ideaName: 'Sustainable Technology Solution',
           skills: ['Product Management', 'Strategy', 'Analytics']
@@ -80,7 +81,7 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
           id: 'p4',
           name: 'David Wilson',
           email: 'david@example.com',
-          motivation: 'I want to create a sustainable technology solution',
+          motivation: 0,
           idea: true,
           ideaName: 'Sustainable Technology Solution',
           skills: ['Blockchain', 'Solidity', 'Web3'],
@@ -89,8 +90,8 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
           id: 'p5',
           name: 'Eva Brown',
           email: 'eva@example.com',
-          motivation: 'I want to create a sustainable technology solution',
-          idea: true,
+          motivation: 0,
+          idea: false,
           ideaName: 'Sustainable Technology Solution',
           skills: ['Design Systems', 'Accessibility', 'Mobile Design'],
         }
@@ -167,6 +168,18 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
     setHackathons(prev => [...prev, newHackathon]);
   };
 
+  const replaceCurrentHackathonParticipants = (participants: Participant[]) => {
+    if (!currentHackathon) return;
+
+    setHackathons(prev => prev.map(hackathon =>
+      hackathon.id === currentHackathon.id
+        ? { ...hackathon, participants }
+        : hackathon
+    ));
+
+    setCurrentHackathon(prev => prev ? { ...prev, participants } as Hackathon : null as any);
+  };
+
   const value: HackathonContextType = {
     hackathons,
     currentHackathon,
@@ -175,6 +188,8 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
     removeParticipant,
     updateParticipant,
     createHackathon
+    ,
+    replaceCurrentHackathonParticipants
   };
 
   return (

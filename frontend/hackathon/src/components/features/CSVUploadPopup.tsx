@@ -267,7 +267,6 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
             </Button>
             <Button 
               onClick={() => onUploadComplete(validationData?.batchPreviewId)}
-              disabled={validationData?.errors.length > 0 || !validationData?.batchPreviewId}
               className="w-1/2 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               Confirm
