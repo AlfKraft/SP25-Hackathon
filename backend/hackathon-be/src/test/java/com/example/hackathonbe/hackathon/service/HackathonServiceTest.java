@@ -1,4 +1,4 @@
-package com.example.hackathonbe.hackathon.controller;
+package com.example.hackathonbe.hackathon.service;
 
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
