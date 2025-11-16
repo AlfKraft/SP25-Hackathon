@@ -4,6 +4,7 @@ import com.example.hackathonbe.hackathon.model.HackathonStatus;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record HackathonUpdateRequest(
         @NotBlank
@@ -19,10 +20,10 @@ public record HackathonUpdateRequest(
         String location,
 
         @NotNull
-        LocalDate startDate,
+        LocalDateTime startDate,
 
         @NotNull
-        LocalDate endDate,
+        LocalDateTime endDate,
 
         @NotNull
         HackathonStatus status

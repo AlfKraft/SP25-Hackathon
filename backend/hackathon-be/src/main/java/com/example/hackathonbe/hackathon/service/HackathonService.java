@@ -1,146 +1,49 @@
 package com.example.hackathonbe.hackathon.service;
 
-import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
-import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
-import com.example.hackathonbe.hackathon.exeption.HackathonValidationException;
+import com.example.hackathonbe.hackathon.dto.HackathonAdminResponse;
+import com.example.hackathonbe.hackathon.dto.HackathonResponse;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
 import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class HackathonService {
 
-    private final HackathonRepository hackathonRepository;
-    private final ObjectMapper objectMapper; // make sure you have Jackson on classpath
+    private final HackathonRepository repository;
 
-    public Hackathon createHackathon(HackathonCreateRequest request) {
-        validateCreateRequest(request);
-
-        Hackathon hackathon = new Hackathon();
-        hackathon.setName(request.name());
-        hackathon.setSlug(generateSlug(request.name()));
-        hackathon.setDescription(request.description());
-        hackathon.setLocation(request.location());
-        hackathon.setStartDate(request.startDate());
-        hackathon.setEndDate(request.endDate());
-        hackathon.setStatus(HackathonStatus.DRAFT);
-        hackathon.setRequireApproval(request.requireApproval());
-        hackathon.setAllowTeamCreation(request.allowTeamCreation());
-        hackathon.setBannerUrl(request.bannerUrl());
-        hackathon.setQuestionnaire(request.questionnaire());
-        hackathon.setCreatedAt(Instant.now());
-        hackathon.setUpdatedAt(Instant.now());
-
-        return hackathonRepository.save(hackathon);
+    public HackathonService(HackathonRepository repository) {
+        this.repository = repository;
     }
 
-    public Hackathon updateHackathon(Long id, HackathonUpdateRequest request) {
-        Hackathon hackathon = hackathonRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Hackathon not found"));
-
-        validateUpdateRequest(hackathon, request);
-
-        hackathon.setName(request.name());
-        hackathon.setDescription(request.description());
-        hackathon.setLocation(request.location());
-        hackathon.setStartDate(request.startDate());
-        hackathon.setEndDate(request.endDate());
-        hackathon.setStatus(request.status());
-        hackathon.setUpdatedAt(Instant.now());
-
-        return hackathonRepository.save(hackathon);
+    public List<HackathonResponse> getOpenHackathons() {
+        return repository.findByStatus(HackathonStatus.OPEN)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    private void validateCreateRequest(HackathonCreateRequest request) {
-        validateDates(request.startDate(), request.endDate());
-
-        validateQuestionnaireJson(request.questionnaire());
-    }
-
-    private void validateUpdateRequest(Hackathon existing, HackathonUpdateRequest request) {
-        validateDates(request.startDate(), request.endDate());
-
-        // Business rule: OPEN hackathon must start today or in the future
-        if (request.status() == HackathonStatus.OPEN &&
-                request.startDate().isBefore(LocalDate.now())) {
-            throw new HackathonValidationException(
-                    "Hackathon with status OPEN must have a start date today or in the future."
-            );
+    public HackathonResponse getHackathonById(Long id) {
+        Hackathon hackathon = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + id));
+        if (hackathon.getStatus() != HackathonStatus.OPEN) {
+            throw new IllegalArgumentException("Hackathon is not open: " + id);
         }
-
-        // Business rule: FINISHED hackathon must end today or in the past
-        if (request.status() == HackathonStatus.FINISHED &&
-                request.endDate().isAfter(LocalDate.now())) {
-            throw new HackathonValidationException(
-                    "Hackathon with status FINISHED cannot have an end date in the future."
-            );
-        }
-
-        // Optional rule example: once FINISHED, you cannot change status back
-        if (existing.getStatus() == HackathonStatus.FINISHED &&
-                request.status() != HackathonStatus.FINISHED) {
-            throw new HackathonValidationException(
-                    "Finished hackathons cannot change status."
-            );
-        }
+        return toResponse(hackathon);
     }
 
-    public List<Hackathon> listHackathons() {
-        return hackathonRepository.findAll();
-    }
-
-    public Optional<Hackathon> getById(Long id) {
-        return hackathonRepository.findById(id);
-    }
-
-    public void deleteById(Long id) {
-        if (!hackathonRepository.existsById(id)) {
-            throw new EntityNotFoundException("Hackathon not found");
-        }
-        hackathonRepository.deleteById(id);
-    }
-
-
-    private void validateDates(LocalDate startDate, LocalDate endDate) {
-        if (startDate.isAfter(endDate)) {
-            throw new HackathonValidationException("Start date cannot be after end date.");
-        }
-    }
-
-    private void validateQuestionnaireJson(JsonNode questionnaire) {
-        // If questionnaire is omitted or null → OK
-        if (questionnaire == null || questionnaire.isNull()) {
-            return;
-        }
-
-        // Must be a JSON object
-        if (!questionnaire.isObject()) {
-            throw new HackathonValidationException("Questionnaire must be a JSON object.");
-        }
-
-        // Must contain "questions" array
-        JsonNode questions = questionnaire.get("questions");
-        if (questions == null || !questions.isArray()) {
-            throw new HackathonValidationException("Questionnaire JSON must contain a 'questions' array.");
-        }
-    }
-
-
-    private String generateSlug(String name) {
-        return name.toLowerCase()
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("-+$", "");
+    private HackathonResponse toResponse(Hackathon entity) {
+        // adjust to your actual fields / constructor
+        return new HackathonResponse(
+                entity.getId(),
+                entity.getName(),
+                entity.getDescription(),
+                entity.getLocation(),
+                entity.getStartDate(),
+                entity.getEndDate(),
+                entity.getStatus()
+        );
     }
 }
-

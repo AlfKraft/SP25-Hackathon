@@ -1,277 +1,114 @@
 package com.example.hackathonbe.hackathon.service;
 
+import com.example.hackathonbe.hackathon.dto.HackathonResponse;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
-import com.example.hackathonbe.hackathon.service.HackathonService;
-import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
-import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
-import com.example.hackathonbe.hackathon.exeption.HackathonValidationException;
 
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
 
+/**
+ * Tests for HackathonService.
+ */
 @ExtendWith(MockitoExtension.class)
 class HackathonServiceTest {
 
     @Mock
-    private HackathonRepository hackathonRepository;
+    private HackathonRepository repository;
 
     @InjectMocks
-    private HackathonService hackathonService;
+    private HackathonService service;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Test
+    void getOpenHackathons_returnsOnlyOpenHackathonsMappedToResponses() {
+        // given
+        Hackathon h1 = createHackathon(1L, "Hack 1", HackathonStatus.OPEN);
+        Hackathon h2 = createHackathon(2L, "Hack 2", HackathonStatus.OPEN);
+        when(repository.findByStatus(HackathonStatus.OPEN))
+                .thenReturn(List.of(h1, h2));
 
-    @BeforeEach
-    void setup() {
+        // when
+        List<HackathonResponse> result = service.getOpenHackathons();
 
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).id()).isEqualTo(1L);
+        assertThat(result.get(0).name()).isEqualTo("Hack 1");
+        assertThat(result.get(0).status()).isEqualTo(HackathonStatus.OPEN);
+
+        assertThat(result.get(1).id()).isEqualTo(2L);
+        assertThat(result.get(1).name()).isEqualTo("Hack 2");
+        assertThat(result.get(1).status()).isEqualTo(HackathonStatus.OPEN);
+
+        // also verify correct status filter used
+        ArgumentCaptor<HackathonStatus> statusCaptor = ArgumentCaptor.forClass(HackathonStatus.class);
+        verify(repository).findByStatus(statusCaptor.capture());
+        assertThat(statusCaptor.getValue()).isEqualTo(HackathonStatus.OPEN);
     }
 
-    private HackathonCreateRequest baseCreateRequest(JsonNode questionnaire) {
-        return new HackathonCreateRequest(
-                "Test Hackathon",
-                "Description",
-                "Tallinn",
-                LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(2),
-                false,
-                true,
-                null,
-                questionnaire
-        );
+    @Test
+    void getHackathonById_whenOpen_returnsMappedResponse() {
+        // given
+        Hackathon entity = createHackathon(10L, "Open Hack", HackathonStatus.OPEN);
+        when(repository.findById(10L)).thenReturn(Optional.of(entity));
+
+        // when
+        HackathonResponse result = service.getHackathonById(10L);
+
+        // then
+        assertThat(result.id()).isEqualTo(10L);
+        assertThat(result.name()).isEqualTo("Open Hack");
+        assertThat(result.description()).isEqualTo("Some description");
+        assertThat(result.location()).isEqualTo("Tartu");
+        assertThat(result.startDate()).isEqualTo(entity.getStartDate());
+        assertThat(result.endDate()).isEqualTo(entity.getEndDate());
+        assertThat(result.status()).isEqualTo(HackathonStatus.OPEN);
     }
 
-    private HackathonUpdateRequest baseUpdateRequest(LocalDate start, LocalDate end, HackathonStatus status) {
-        return new HackathonUpdateRequest(
-                "Updated Name",
-                "Updated Description",
-                "Tartu",
-                start,
-                end,
-                status
-        );
+    @Test
+    void getHackathonById_whenNotFound_throwsIllegalArgumentException() {
+        // given
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        // expect
+        assertThatThrownBy(() -> service.getHackathonById(99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Hackathon not found: 99");
     }
 
-    private Hackathon existingHackathon(HackathonStatus status) {
+    @Test
+    void getHackathonById_whenNotOpen_throwsIllegalArgumentException() {
+        // given
+        Hackathon entity = createHackathon(5L, "Closed Hack", HackathonStatus.CLOSED);
+        when(repository.findById(5L)).thenReturn(Optional.of(entity));
+
+        // expect
+        assertThatThrownBy(() -> service.getHackathonById(5L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Hackathon is not open: 5");
+    }
+
+    private Hackathon createHackathon(Long id, String name, HackathonStatus status) {
         Hackathon h = new Hackathon();
-        h.setId(1L);
-        h.setName("Existing");
-        h.setDescription("Existing desc");
-        h.setLocation("Tallinn");
-        h.setStartDate(LocalDate.now().plusDays(1));
-        h.setEndDate(LocalDate.now().plusDays(2));
+        h.setId(id);
+        h.setName(name);
+        h.setDescription("Some description");
+        h.setLocation("Tartu");
         h.setStatus(status);
-        h.setCreatedAt(Instant.now());
-        h.setUpdatedAt(Instant.now());
+        h.setStartDate(LocalDateTime.of(2025, 1, 10, 9, 0));
+        h.setEndDate(LocalDateTime.of(2025, 1, 12, 18, 0));
         return h;
-    }
-
-
-    @Test
-    void createHackathon_allGood_withNullQuestionnaire_shouldSucceed() {
-        HackathonCreateRequest request = baseCreateRequest(null);
-
-        when(hackathonRepository.save(ArgumentMatchers.any(Hackathon.class)))
-                .thenAnswer(invocation -> {
-                    Hackathon h = invocation.getArgument(0);
-                    h.setId(1L);
-                    return h;
-                });
-
-        Hackathon created = hackathonService.createHackathon(request);
-
-        assertNotNull(created.getId());
-        assertEquals("Test Hackathon", created.getName());
-    }
-
-    @Test
-    void createHackathon_questionnaireWithoutQuestionsArray_shouldFail() throws Exception {
-        JsonNode badQuestionnaire = objectMapper.readTree("""
-            {
-              "foo": "bar"
-            }
-            """);
-
-        HackathonCreateRequest request = baseCreateRequest(badQuestionnaire);
-
-        HackathonValidationException ex = assertThrows(
-                HackathonValidationException.class,
-                () -> hackathonService.createHackathon(request)
-        );
-
-        assertTrue(ex.getMessage().contains("must contain a 'questions' array"));
-    }
-
-    @Test
-    void createHackathon_questionnaireNotObject_shouldFail() throws Exception {
-        JsonNode badQuestionnaire = objectMapper.readTree("""
-            [
-              { "id": "q1", "type": "text" }
-            ]
-            """);
-
-        HackathonCreateRequest request = baseCreateRequest(badQuestionnaire);
-
-        HackathonValidationException ex = assertThrows(
-                HackathonValidationException.class,
-                () -> hackathonService.createHackathon(request)
-        );
-
-        assertTrue(ex.getMessage().contains("Questionnaire must be a JSON object"));
-    }
-
-    @Test
-    void createHackathon_validQuestionnaire_shouldSucceed() throws Exception {
-        JsonNode questionnaire = objectMapper.readTree("""
-            {
-              "questions": [
-                {
-                  "id": "q1",
-                  "type": "text",
-                  "label": "Main skill",
-                  "required": true
-                },
-                {
-                  "id": "q2",
-                  "type": "select",
-                  "label": "Focus area",
-                  "required": false,
-                  "options": ["AI", "Health", "Finance"]
-                }
-              ]
-            }
-            """);
-
-        HackathonCreateRequest request = baseCreateRequest(questionnaire);
-
-        when(hackathonRepository.save(ArgumentMatchers.any(Hackathon.class)))
-                .thenAnswer(invocation -> {
-                    Hackathon h = invocation.getArgument(0);
-                    h.setId(42L);
-                    return h;
-                });
-
-        Hackathon created = hackathonService.createHackathon(request);
-
-        assertEquals(42L, created.getId());
-        assertNotNull(created.getQuestionnaire());
-    }
-
-
-    @Test
-    void createHackathon_startAfterEnd_shouldFail() {
-        HackathonCreateRequest request = new HackathonCreateRequest(
-                "Test",
-                "Desc",
-                "Tallinn",
-                LocalDate.now().plusDays(5),
-                LocalDate.now().plusDays(1),
-                false,
-                true,
-                null,
-                null
-        );
-
-        HackathonValidationException ex = assertThrows(
-                HackathonValidationException.class,
-                () -> hackathonService.createHackathon(request)
-        );
-
-        assertTrue(ex.getMessage().contains("Start date cannot be after end date"));
-    }
-
-    // ---------- UPDATE: status/date rules ----------
-
-    @Test
-    void updateHackathon_toOpenWithStartInPast_shouldFail() {
-        Hackathon existing = existingHackathon(HackathonStatus.DRAFT);
-
-        when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
-
-        HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().minusDays(1),
-                LocalDate.now().plusDays(1),
-                HackathonStatus.OPEN
-        );
-
-        HackathonValidationException ex = assertThrows(
-                HackathonValidationException.class,
-                () -> hackathonService.updateHackathon(1L, request)
-        );
-
-        assertTrue(ex.getMessage().contains("status OPEN"));
-    }
-
-    @Test
-    void updateHackathon_toFinishedWithEndInFuture_shouldFail() {
-        Hackathon existing = existingHackathon(HackathonStatus.OPEN);
-
-        when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
-
-        HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().minusDays(3),
-                LocalDate.now().plusDays(3),
-                HackathonStatus.FINISHED
-        );
-
-        HackathonValidationException ex = assertThrows(
-                HackathonValidationException.class,
-                () -> hackathonService.updateHackathon(1L, request)
-        );
-
-        assertTrue(ex.getMessage().contains("FINISHED cannot have an end date in the future"));
-    }
-
-    @Test
-    void updateHackathon_finishedToDraft_shouldFail() {
-        Hackathon existing = existingHackathon(HackathonStatus.FINISHED);
-
-        when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
-
-        HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().minusDays(3),
-                LocalDate.now().minusDays(1),
-                HackathonStatus.DRAFT
-        );
-
-        HackathonValidationException ex = assertThrows(
-                HackathonValidationException.class,
-                () -> hackathonService.updateHackathon(1L, request)
-        );
-
-        assertTrue(ex.getMessage().contains("Finished hackathons cannot change status"));
-    }
-
-    @Test
-    void updateHackathon_validUpdate_shouldSucceed() {
-        Hackathon existing = existingHackathon(HackathonStatus.DRAFT);
-
-        when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(hackathonRepository.save(ArgumentMatchers.any(Hackathon.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(3),
-                HackathonStatus.OPEN
-        );
-
-        Hackathon updated = hackathonService.updateHackathon(1L, request);
-
-        assertEquals("Updated Name", updated.getName());
-        assertEquals(HackathonStatus.OPEN, updated.getStatus());
     }
 }
