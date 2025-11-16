@@ -1,13 +1,18 @@
 package com.example.hackathonbe.importing.service;
 
-import com.example.hackathonbe.hackathon.model.Hackathon;
+import com.example.hackathonbe.hackathon.model.*;
 import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
+import com.example.hackathonbe.hackathon.repositories.QuestionnaireRepository;
+import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.example.hackathonbe.importing.model.*;
 import com.example.hackathonbe.importing.parse.CsvParser;
 import com.example.hackathonbe.importing.parse.SpreadsheetParser;
 import com.example.hackathonbe.importing.parse.XlsxParser;
 import com.example.hackathonbe.importing.preview.PreviewCache;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.EntityNotFoundException;
@@ -29,7 +34,9 @@ import java.util.stream.Collectors;
 public class UploadService {
     private final ParticipantRepository participantRepository;
     private final HackathonRepository hackathonRepository;
+    private final QuestionnaireService questionnaireService;
     private final PreviewCache cache = new PreviewCache();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ValidationReport validate(MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) {
@@ -164,7 +171,8 @@ public class UploadService {
 
         List<ParticipantPreviewRow> rows = cache.get(previewId);
         if (rows == null) return null;
-
+        JsonNode createdQuestionnaireJson = createExternalQuestionnaireJson(rows);
+        questionnaireService.saveExternalQuestionnaire(hackathon, createdQuestionnaireJson);
         int total = rows.size();
         int skipped = 0;
 
@@ -216,5 +224,31 @@ public class UploadService {
         hackathonRepository.save(hackathon);
 
         return new ImportSummary(total, inserted, updated, skipped, deduped);
+    }
+    /**
+     * Creates external questionnaire JSON structure from CSV header.
+     */
+    public JsonNode createExternalQuestionnaireJson(List<ParticipantPreviewRow> previewRows) {
+        if (previewRows.isEmpty()) {
+            return objectMapper.createObjectNode();
+        }
+        Questionnaire questionnaire = new Questionnaire();
+        List<String> headers = new ArrayList<>(previewRows.get(0).keyToHeader().values());
+
+        ObjectNode root = objectMapper.createObjectNode();
+        ArrayNode questions = objectMapper.createArrayNode();
+        root.set("questions", questions);
+        int qIndex = 1;
+        for (String header : headers){
+            CoreFieldKey coreKey = CoreFieldKey.fromKey(header);
+            if (coreKey != null) {
+                ObjectNode question = objectMapper.createObjectNode();
+                question.put("id", "Q" + qIndex++);
+                question.put("label", coreKey.defaultLabel());
+                question.put("type", coreKey.defaultType());
+                questions.add(question);
+            }
+        }
+        return root;
     }
 }

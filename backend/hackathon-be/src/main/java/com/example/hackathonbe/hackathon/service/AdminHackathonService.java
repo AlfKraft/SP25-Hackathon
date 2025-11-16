@@ -39,7 +39,6 @@ public class AdminHackathonService {
         hackathon.setRequireApproval(request.requireApproval());
         hackathon.setAllowTeamCreation(request.allowTeamCreation());
         hackathon.setBannerUrl(request.bannerUrl());
-        hackathon.setQuestionnaire(request.questionnaire());
         hackathon.setCreatedAt(Instant.now());
         hackathon.setUpdatedAt(Instant.now());
 
@@ -65,8 +64,6 @@ public class AdminHackathonService {
 
     private void validateCreateRequest(HackathonCreateRequest request) {
         validateDates(request.startDate(), request.endDate());
-
-        validateQuestionnaireJson(request.questionnaire());
     }
 
     private void validateUpdateRequest(Hackathon existing, HackathonUpdateRequest request) {
@@ -118,25 +115,6 @@ public class AdminHackathonService {
             throw new HackathonValidationException("Start date cannot be after end date.");
         }
     }
-
-    private void validateQuestionnaireJson(JsonNode questionnaire) {
-        // If questionnaire is omitted or null → OK
-        if (questionnaire == null || questionnaire.isNull()) {
-            return;
-        }
-
-        // Must be a JSON object
-        if (!questionnaire.isObject()) {
-            throw new HackathonValidationException("Questionnaire must be a JSON object.");
-        }
-
-        // Must contain "questions" array
-        JsonNode questions = questionnaire.get("questions");
-        if (questions == null || !questions.isArray()) {
-            throw new HackathonValidationException("Questionnaire JSON must contain a 'questions' array.");
-        }
-    }
-
 
     private String generateSlug(String name) {
         return name.toLowerCase()

@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.Type;
 
 import java.time.Instant;
@@ -13,7 +16,9 @@ import java.util.Set;
 
 @Entity
 @Table(name = "hackathon")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class Hackathon {
 
     @Id
@@ -36,9 +41,9 @@ public class Hackathon {
 
     private String bannerUrl;
 
-    @Type(JsonType.class)
-    @Column(columnDefinition = "jsonb", nullable = false)
-    private JsonNode questionnaire;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "questionnaire_id")
+    private Questionnaire questionnaire;
 
     private Instant createdAt;
     private Instant updatedAt;

@@ -31,8 +31,5 @@ public record HackathonCreateRequest(
         boolean allowTeamCreation,
 
         @Size(max = 1000)
-        String bannerUrl,
-
-        // optional, but if present should not be blank
-        JsonNode questionnaire
+        String bannerUrl
 ) {}

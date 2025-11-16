@@ -1,6 +1,7 @@
 package com.example.hackathonbe.importing.service;
 
 import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
+import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.example.hackathonbe.importing.service.UploadService;
 import com.example.hackathonbe.importing.model.ValidationReport;
@@ -15,7 +16,7 @@ import static org.mockito.Mockito.mock;
 
 class UploadServiceTest {
 
-    private final UploadService service = new UploadService(mock(ParticipantRepository.class), mock(HackathonRepository.class));
+    private final UploadService service = new UploadService(mock(ParticipantRepository.class), mock(HackathonRepository.class), mock(QuestionnaireService.class));
 
     private static final String SAMPLE_CSV =
             String.join("\r\n",

@@ -45,7 +45,6 @@ class AdminHackathonControllerTest {
                 LocalDateTime.of(2025, 1, 12, 18, 0),
                 false,
                 true,
-                null,
                 null
         );
         Hackathon created = sampleHackathon(1L, "New Hack", HackathonStatus.DRAFT);

@@ -19,7 +19,6 @@ public record HackathonAdminResponse(
         boolean requireApproval,
         boolean allowTeamCreation,
         String bannerUrl,
-        JsonNode questionnaire,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -36,7 +35,6 @@ public record HackathonAdminResponse(
                 h.isRequireApproval(),
                 h.isAllowTeamCreation(),
                 h.getBannerUrl(),
-                h.getQuestionnaire(),
                 h.getCreatedAt(),
                 h.getUpdatedAt()
         );
