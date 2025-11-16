@@ -125,8 +125,8 @@ public class QuestionnaireService {
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + hackathonId));
         // 2. Resolve participant by participantId
-        Participant participant = participantRepository.findById(dto.getParticipantId())
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found: " + dto.getParticipantId()));
+        Participant participant = participantRepository.findById(dto.participantId())
+                .orElseThrow(() -> new IllegalArgumentException("Participant not found: " + dto.participantId()));
         // 3. Validate questionnaire is public (PUBLISHED/LOCKED)
         Questionnaire questionnaire = getQuestionnaire(hackathonId, dto.questionnaireId(), hackathon);
         // 4. Create or update QuestionnaireAnswer (one per questionnaire+participant)
