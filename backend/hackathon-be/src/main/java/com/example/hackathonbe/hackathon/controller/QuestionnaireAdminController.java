@@ -45,4 +45,14 @@ public class QuestionnaireAdminController {
         JsonNode json = questionnaireService.getQuestionsForHackathon(hackathonId);
         return ResponseEntity.ok(json);
     }
+
+    @PostMapping("/edit/{questionnaireId}")
+    public ResponseEntity<JsonNode> editQuestionnaire(
+            @PathVariable Long hackathonId,
+            @PathVariable Long questionnaireId,
+            @RequestBody JsonNode questionsJson
+    ) {
+        Questionnaire q = questionnaireService.editQuestionnaire(hackathonId, questionnaireId, questionsJson);
+        return ResponseEntity.ok(q.getQuestions());
+    }
 }

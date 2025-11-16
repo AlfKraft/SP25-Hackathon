@@ -1,5 +1,6 @@
 package com.example.hackathonbe.hackathon.controller;
 
+import com.example.hackathonbe.hackathon.dto.SubmitQuestionnaireAnswersDto;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -22,4 +23,15 @@ public class QuestionnaireController {
         JsonNode json = questionnaireService.getPublicQuestionnaire(hackathonId);
         return ResponseEntity.ok(json);
     }
+
+    @PostMapping("/submit")
+    public ResponseEntity<Void> submitAnswers(
+            @PathVariable Long hackathonId,
+            @RequestBody SubmitQuestionnaireAnswersDto answers
+    ) {
+        questionnaireService.submitAnswers(hackathonId, answers);
+        return ResponseEntity.ok().build();
+    }
+
+
 }

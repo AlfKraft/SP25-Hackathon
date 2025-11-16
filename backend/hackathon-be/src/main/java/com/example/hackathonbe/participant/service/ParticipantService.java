@@ -20,7 +20,6 @@ public class ParticipantService {
             dto.setEmail(participant.getEmail());
             dto.setFirstName(participant.getFirstName());
             dto.setLastName(participant.getLastName());
-            dto.setData(participant.getData());
             return dto;
         }).toList();
     }
