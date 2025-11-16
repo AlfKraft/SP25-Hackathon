@@ -14,12 +14,13 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class HackathonService {
+public class AdminHackathonService {
 
     private final HackathonRepository hackathonRepository;
     private final ObjectMapper objectMapper; // make sure you have Jackson on classpath
@@ -73,7 +74,7 @@ public class HackathonService {
 
         // Business rule: OPEN hackathon must start today or in the future
         if (request.status() == HackathonStatus.OPEN &&
-                request.startDate().isBefore(LocalDate.now())) {
+                request.startDate().isBefore(LocalDateTime.now())) {
             throw new HackathonValidationException(
                     "Hackathon with status OPEN must have a start date today or in the future."
             );
@@ -81,7 +82,7 @@ public class HackathonService {
 
         // Business rule: FINISHED hackathon must end today or in the past
         if (request.status() == HackathonStatus.FINISHED &&
-                request.endDate().isAfter(LocalDate.now())) {
+                request.endDate().isAfter(LocalDateTime.now())) {
             throw new HackathonValidationException(
                     "Hackathon with status FINISHED cannot have an end date in the future."
             );
@@ -112,7 +113,7 @@ public class HackathonService {
     }
 
 
-    private void validateDates(LocalDate startDate, LocalDate endDate) {
+    private void validateDates(LocalDateTime startDate, LocalDateTime endDate) {
         if (startDate.isAfter(endDate)) {
             throw new HackathonValidationException("Start date cannot be after end date.");
         }

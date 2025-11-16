@@ -12,26 +12,25 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
-import com.example.hackathonbe.hackathon.service.HackathonService;
 import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
 import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
 import com.example.hackathonbe.hackathon.exeption.HackathonValidationException;
 
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class HackathonServiceTest {
+class HackathonAdminServiceTest {
 
     @Mock
     private HackathonRepository hackathonRepository;
 
     @InjectMocks
-    private HackathonService hackathonService;
+    private AdminHackathonService hackathonService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -45,8 +44,8 @@ class HackathonServiceTest {
                 "Test Hackathon",
                 "Description",
                 "Tallinn",
-                LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(2),
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(2),
                 false,
                 true,
                 null,
@@ -54,7 +53,7 @@ class HackathonServiceTest {
         );
     }
 
-    private HackathonUpdateRequest baseUpdateRequest(LocalDate start, LocalDate end, HackathonStatus status) {
+    private HackathonUpdateRequest baseUpdateRequest(LocalDateTime start, LocalDateTime end, HackathonStatus status) {
         return new HackathonUpdateRequest(
                 "Updated Name",
                 "Updated Description",
@@ -71,8 +70,8 @@ class HackathonServiceTest {
         h.setName("Existing");
         h.setDescription("Existing desc");
         h.setLocation("Tallinn");
-        h.setStartDate(LocalDate.now().plusDays(1));
-        h.setEndDate(LocalDate.now().plusDays(2));
+        h.setStartDate(LocalDateTime.now().plusDays(1));
+        h.setEndDate(LocalDateTime.now().plusDays(2));
         h.setStatus(status);
         h.setCreatedAt(Instant.now());
         h.setUpdatedAt(Instant.now());
@@ -177,8 +176,8 @@ class HackathonServiceTest {
                 "Test",
                 "Desc",
                 "Tallinn",
-                LocalDate.now().plusDays(5),
-                LocalDate.now().plusDays(1),
+                LocalDateTime.now().plusDays(5),
+                LocalDateTime.now().plusDays(1),
                 false,
                 true,
                 null,
@@ -202,8 +201,8 @@ class HackathonServiceTest {
         when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().minusDays(1),
-                LocalDate.now().plusDays(1),
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().plusDays(1),
                 HackathonStatus.OPEN
         );
 
@@ -222,8 +221,8 @@ class HackathonServiceTest {
         when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().minusDays(3),
-                LocalDate.now().plusDays(3),
+                LocalDateTime.now().minusDays(3),
+                LocalDateTime.now().plusDays(3),
                 HackathonStatus.FINISHED
         );
 
@@ -242,8 +241,8 @@ class HackathonServiceTest {
         when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().minusDays(3),
-                LocalDate.now().minusDays(1),
+                LocalDateTime.now().minusDays(3),
+                LocalDateTime.now().minusDays(1),
                 HackathonStatus.DRAFT
         );
 
@@ -264,8 +263,8 @@ class HackathonServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         HackathonUpdateRequest request = baseUpdateRequest(
-                LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(3),
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(3),
                 HackathonStatus.OPEN
         );
 

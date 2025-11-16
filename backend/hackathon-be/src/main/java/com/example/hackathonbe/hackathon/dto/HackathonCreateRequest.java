@@ -1,6 +1,7 @@
 package com.example.hackathonbe.hackathon.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.*;
@@ -20,11 +21,11 @@ public record HackathonCreateRequest(
 
         @NotNull
         @FutureOrPresent
-        LocalDate startDate,
+        LocalDateTime startDate,
 
         @NotNull
         @FutureOrPresent
-        LocalDate endDate,
+        LocalDateTime endDate,
 
         boolean requireApproval,
         boolean allowTeamCreation,

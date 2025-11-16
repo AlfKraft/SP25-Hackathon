@@ -7,7 +7,7 @@ import lombok.Data;
 import org.hibernate.annotations.Type;
 
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,8 +25,8 @@ public class Hackathon {
     private String description;
     private String location;
 
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
 
     @Enumerated(EnumType.STRING)
     private HackathonStatus status;

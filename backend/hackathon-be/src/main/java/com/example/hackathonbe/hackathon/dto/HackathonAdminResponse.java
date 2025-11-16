@@ -5,16 +5,16 @@ import com.example.hackathonbe.hackathon.model.HackathonStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-public record HackathonResponse(
+public record HackathonAdminResponse(
         Long id,
         String name,
         String slug,
         String description,
         String location,
-        LocalDate startDate,
-        LocalDate endDate,
+        LocalDateTime startDate,
+        LocalDateTime endDate,
         HackathonStatus status,
         boolean requireApproval,
         boolean allowTeamCreation,
@@ -23,8 +23,8 @@ public record HackathonResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    public static HackathonResponse fromEntity(Hackathon h) {
-        return new HackathonResponse(
+    public static HackathonAdminResponse fromEntity(Hackathon h) {
+        return new HackathonAdminResponse(
                 h.getId(),
                 h.getName(),
                 h.getSlug(),
