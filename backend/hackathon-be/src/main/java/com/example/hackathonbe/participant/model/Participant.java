@@ -1,4 +1,4 @@
-package com.example.hackathonbe.importing.model;
+package com.example.hackathonbe.participant.model;
 
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.fasterxml.jackson.databind.JsonNode;

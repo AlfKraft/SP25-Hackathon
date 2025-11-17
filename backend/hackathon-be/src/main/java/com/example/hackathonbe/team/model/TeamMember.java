@@ -13,7 +13,12 @@ public class TeamMember {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "team_id", nullable = false)
     private UUID teamId;
+
+    @Column(name = "generation_id", nullable = false)
+    private UUID generationId;
+
     @Column(name = "participant_id", nullable = false)
     private Long participantId;
 

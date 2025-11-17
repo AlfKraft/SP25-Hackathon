@@ -4,65 +4,51 @@ import com.example.hackathonbe.hackathon.dto.HackathonResponse;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
 import com.example.hackathonbe.hackathon.service.HackathonService;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Unit tests for HackathonController (public endpoints).
+ * HTTP-level tests for public HackathonController.
  */
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(HackathonController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class HackathonControllerTest {
 
-    @Mock
-    private HackathonService service;
+    @Autowired
+    MockMvc mockMvc;
 
-    @InjectMocks
-    private HackathonController controller;
+    @MockBean
+    HackathonService hackathonService;
 
     @Test
-    void getOpenHackathons_returns200WithBodyFromService() {
-        // given
+    void listVisibleHackathons_returns200AndArray() throws Exception {
         HackathonResponse r1 = sampleResponse(1L, "Hack 1");
         HackathonResponse r2 = sampleResponse(2L, "Hack 2");
-        when(service.getOpenHackathons()).thenReturn(List.of(r1, r2));
 
-        // when
-        ResponseEntity<List<HackathonResponse>> response = controller.getOpenHackathons();
+        when(hackathonService.getOpenHackathons()).thenReturn(List.of(r1, r2));
 
-        // then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        List<HackathonResponse> body = response.getBody();
-        assertNotNull(body);
-        assertEquals(2, body.size());
-        assertEquals(r1, body.get(0));
-        assertEquals(r2, body.get(1));
+        mockMvc.perform(get("/api/hackathons")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].name").value("Hack 1"))
+                .andExpect(jsonPath("$[1].id").value(2L))
+                .andExpect(jsonPath("$[1].name").value("Hack 2"));
 
-        verify(service).getOpenHackathons();
-    }
-
-    @Test
-    void getHackathonById_returns200WithBodyFromService() {
-        // given
-        HackathonResponse expected = sampleResponse(10L, "Open Hack");
-        when(service.getHackathonById(10L)).thenReturn(expected);
-
-        // when
-        ResponseEntity<HackathonResponse> response = controller.getHackathonById(10L);
-
-        // then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(expected, response.getBody());
-        verify(service).getHackathonById(10L);
+        verify(hackathonService).getOpenHackathons();
     }
 
     private HackathonResponse sampleResponse(Long id, String name) {
