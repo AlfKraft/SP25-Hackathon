@@ -1,6 +1,6 @@
 package com.example.hackathonbe.hackathon.model;
 
-import com.example.hackathonbe.importing.model.Participant;
+import com.example.hackathonbe.participant.model.Participant;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;

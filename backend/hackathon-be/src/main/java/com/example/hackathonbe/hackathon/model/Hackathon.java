@@ -1,13 +1,10 @@
 package com.example.hackathonbe.hackathon.model;
-import com.example.hackathonbe.importing.model.Participant;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.vladmihalcea.hibernate.type.json.JsonType;
+import com.example.hackathonbe.participant.model.Participant;
+import com.example.hackathonbe.team.model.Team;
 import jakarta.persistence.*;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -56,6 +53,22 @@ public class Hackathon {
             inverseJoinColumns = @JoinColumn(name = "participant_id")
     )
     private Set<Participant> participants = new HashSet<>();
+
+
+    @OneToMany(mappedBy = "hackathon",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private Set<Team> teams = new HashSet<>();
+
+    public void addTeam(Team team) {
+        teams.add(team);
+        team.setHackathon(this);
+    }
+
+    public void removeTeam(Team team) {
+        teams.remove(team);
+        team.setHackathon(null);
+    }
 
     public void addParticipant(Participant p) {
         this.participants.add(p);

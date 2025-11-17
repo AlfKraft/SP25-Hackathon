@@ -1,5 +1,6 @@
 package com.example.hackathonbe.team.model;
 
+import com.example.hackathonbe.hackathon.model.Hackathon;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -23,4 +24,8 @@ public class Team {
 
     @Column(nullable = false, columnDefinition = "timestamptz")
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "hackathon_id", nullable = false)
+    private Hackathon hackathon;
 }

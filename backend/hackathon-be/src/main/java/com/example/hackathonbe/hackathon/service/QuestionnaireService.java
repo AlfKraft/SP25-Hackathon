@@ -5,7 +5,7 @@ import com.example.hackathonbe.hackathon.model.*;
 import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
 import com.example.hackathonbe.hackathon.repositories.QuestionnaireAnswerRepository;
 import com.example.hackathonbe.hackathon.repositories.QuestionnaireRepository;
-import com.example.hackathonbe.importing.model.Participant;
+import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;

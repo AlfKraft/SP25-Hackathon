@@ -6,63 +6,72 @@ import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
 import com.example.hackathonbe.hackathon.service.AdminHackathonService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Unit tests for AdminHackathonController.
+ * Real HTTP-level tests for AdminHackathonController.
  */
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(AdminHackathonController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AdminHackathonControllerTest {
 
-    @Mock
-    private AdminHackathonService hackathonService;
+    @Autowired
+    MockMvc mockMvc;
 
-    @InjectMocks
-    private AdminHackathonController controller;
+    @Autowired
+    ObjectMapper objectMapper;
+
+    @MockBean
+    AdminHackathonService hackathonService;
 
     @Test
-    void create_returns201WithLocationAndBody() {
-        // given
+    void create_returns201WithLocationAndBody() throws Exception {
         HackathonCreateRequest request = new HackathonCreateRequest(
                 "New Hack",
-                "Desc",
+                "Description",
                 "Tartu",
-                LocalDateTime.of(2025, 1, 10, 9, 0),
-                LocalDateTime.of(2025, 1, 12, 18, 0),
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(2),
                 false,
                 true,
                 null
         );
+
         Hackathon created = sampleHackathon(1L, "New Hack", HackathonStatus.DRAFT);
-        when(hackathonService.createHackathon(request)).thenReturn(created);
+        when(hackathonService.createHackathon(any(HackathonCreateRequest.class))).thenReturn(created);
 
-        // when
-        ResponseEntity<HackathonAdminResponse> response = controller.create(request);
+        mockMvc.perform(post("/api/admin/hackathons")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", URI.create("/api/admin/hackathons/1").toString()))
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.name").value("New Hack"));
 
-        // then
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(URI.create("/api/admin/hackathons/1"), response.getHeaders().getLocation());
-        assertEquals(HackathonAdminResponse.fromEntity(created), response.getBody());
         verify(hackathonService).createHackathon(request);
     }
 
     @Test
-    void update_returns200WithUpdatedBody() {
-        // given
+    void update_returns200WithUpdatedBody() throws Exception {
+        Long id = 5L;
         HackathonUpdateRequest request = new HackathonUpdateRequest(
                 "Updated Hack",
                 "Updated desc",
@@ -71,77 +80,72 @@ class AdminHackathonControllerTest {
                 LocalDateTime.of(2025, 1, 13, 18, 0),
                 HackathonStatus.OPEN
         );
-        Hackathon updated = sampleHackathon(5L, "Updated Hack", HackathonStatus.OPEN);
-        when(hackathonService.updateHackathon(5L, request)).thenReturn(updated);
 
-        // when
-        ResponseEntity<HackathonAdminResponse> response = controller.update(5L, request);
+        Hackathon updated = sampleHackathon(id, "Updated Hack", HackathonStatus.OPEN);
+        when(hackathonService.updateHackathon(eq(id), any(HackathonUpdateRequest.class)))
+                .thenReturn(updated);
 
-        // then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(HackathonAdminResponse.fromEntity(updated), response.getBody());
-        verify(hackathonService).updateHackathon(5L, request);
+        mockMvc.perform(put("/api/admin/hackathons/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value("Updated Hack"))
+                .andExpect(jsonPath("$.status").value("OPEN"));
+
+        verify(hackathonService).updateHackathon(id, request);
     }
 
     @Test
-    void list_returns200WithMappedResponses() {
-        // given
+    void list_returns200WithArrayBody() throws Exception {
         Hackathon h1 = sampleHackathon(1L, "Hack 1", HackathonStatus.OPEN);
-        Hackathon h2 = sampleHackathon(2L, "Hack 2", HackathonStatus.CLOSED);
+        Hackathon h2 = sampleHackathon(2L, "Hack 2", HackathonStatus.DRAFT);
         when(hackathonService.listHackathons()).thenReturn(List.of(h1, h2));
 
-        // when
-        ResponseEntity<List<HackathonAdminResponse>> response = controller.list();
-
-        // then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        List<HackathonAdminResponse> body = response.getBody();
-        assertNotNull(body);
-        assertEquals(2, body.size());
-        assertEquals(HackathonAdminResponse.fromEntity(h1), body.get(0));
-        assertEquals(HackathonAdminResponse.fromEntity(h2), body.get(1));
+        mockMvc.perform(get("/api/admin/hackathons"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].name").value("Hack 1"))
+                .andExpect(jsonPath("$[1].id").value(2L))
+                .andExpect(jsonPath("$[1].name").value("Hack 2"));
 
         verify(hackathonService).listHackathons();
     }
 
     @Test
-    void getById_whenFound_returns200() {
-        // given
-        Hackathon h = sampleHackathon(10L, "Some Hack", HackathonStatus.OPEN);
-        when(hackathonService.getById(10L)).thenReturn(Optional.of(h));
+    void getById_whenFound_returns200() throws Exception {
+        Long id = 10L;
+        Hackathon h = sampleHackathon(id, "Some Hack", HackathonStatus.OPEN);
+        when(hackathonService.getById(id)).thenReturn(Optional.of(h));
 
-        // when
-        ResponseEntity<HackathonAdminResponse> response = controller.getById(10L);
+        mockMvc.perform(get("/api/admin/hackathons/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value("Some Hack"));
 
-        // then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(HackathonAdminResponse.fromEntity(h), response.getBody());
-        verify(hackathonService).getById(10L);
+        verify(hackathonService).getById(id);
     }
 
     @Test
-    void getById_whenNotFound_returns404() {
-        // given
-        when(hackathonService.getById(99L)).thenReturn(Optional.empty());
+    void getById_whenNotFound_returns404() throws Exception {
+        Long id = 99L;
+        when(hackathonService.getById(id)).thenReturn(Optional.empty());
 
-        // when
-        ResponseEntity<HackathonAdminResponse> response = controller.getById(99L);
+        mockMvc.perform(get("/api/admin/hackathons/{id}", id))
+                .andExpect(status().isNotFound());
 
-        // then
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNull(response.getBody());
-        verify(hackathonService).getById(99L);
+        verify(hackathonService).getById(id);
     }
 
     @Test
-    void delete_callsServiceAndReturnsNoContent() {
-        // when
-        controller.delete(7L);
+    void delete_callsServiceAndReturns204() throws Exception {
+        Long id = 7L;
 
-        // then
-        verify(hackathonService).deleteById(7L);
-        // method is void and annotated with @ResponseStatus(NO_CONTENT),
-        // so there is no ResponseEntity to assert on here.
+        mockMvc.perform(delete("/api/admin/hackathons/{id}", id))
+                .andExpect(status().isNoContent());
+
+        verify(hackathonService).deleteById(id);
     }
 
     private Hackathon sampleHackathon(Long id, String name, HackathonStatus status) {

@@ -4,45 +4,50 @@ import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
+/**
+ * HTTP-level tests for public QuestionnaireController.
+ */
+@WebMvcTest(QuestionnaireController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class QuestionnaireControllerTest {
 
-    @Mock
-    private QuestionnaireService questionnaireService;
+    @Autowired
+    MockMvc mockMvc;
 
-    @InjectMocks
-    private QuestionnaireController controller;
+    @Autowired
+    ObjectMapper objectMapper;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @MockBean
+    QuestionnaireService questionnaireService;
 
     @Test
-    void getPublicQuestionnaire_returnsBodyFromService() throws Exception {
-        // given
-        Long hackathonId = 1L;
+    void getPublicQuestionnaire_returnsJson() throws Exception {
+        long hackathonId = 13L;
+
         JsonNode json = sampleJson();
+        when(questionnaireService.getPublicQuestionnaire(hackathonId)).thenReturn(json);
 
-        when(questionnaireService.getPublicQuestionnaire(hackathonId))
-                .thenReturn(json);
+        mockMvc.perform(get("/api/hackathons/{hackathonId}/questionnaire", hackathonId)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectMapper.writeValueAsString(json)));
 
-        // when
-        ResponseEntity<JsonNode> response = controller.getPublicQuestionnaire(hackathonId);
-
-        // then
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(response.getBody()).isEqualTo(json);
         verify(questionnaireService).getPublicQuestionnaire(hackathonId);
     }
 
-    private JsonNode sampleJson() throws Exception {
+    private JsonNode sampleJson() {
         var root = objectMapper.createObjectNode();
         var sections = objectMapper.createArrayNode();
         root.set("sections", sections);
