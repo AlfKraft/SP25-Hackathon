@@ -67,7 +67,7 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
       const formData = new FormData()
       formData.append('file', selectedFile)
       
-      const response = await fetch('http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/upload/validate', {
+      const response = await fetch('${API_URL}/api/upload/validate', {
         method: 'POST',
             body: formData,
             mode: 'cors',
