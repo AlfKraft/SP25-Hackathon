@@ -1,0 +1,70 @@
+name: Cypress E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - front
+      - develop
+  pull_request:
+    branches:
+      - main
+      - front
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the application
+        run: npm run build
+        continue-on-error: true
+
+      - name: Run Cypress tests
+        uses: cypress-io/github-action@v6
+        with:
+          build: npm run build
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: 120
+          browser: chrome
+          record: false
+          spec: cypress/e2e/**/*.cy.ts
+        env:
+          CYPRESS_BASE_URL: http://localhost:5173
+
+      - name: Upload Cypress screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload Cypress videos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-videos
+          path: cypress/videos
+          if-no-files-found: ignore
+
+      - name: Upload Cypress test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-results
+          path: cypress/results
+          if-no-files-found: ignore
