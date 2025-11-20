@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-
+import { API_URL } from '@/lib/config';
 interface CSVUploadPopupProps {
   onClose: () => void
   onUploadComplete: (previewId: string) => void
@@ -66,12 +66,12 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
     try {
       const formData = new FormData()
       formData.append('file', selectedFile)
-      
-      const response = await fetch('${API_URL}/api/upload/validate', {
-        method: 'POST',
+
+        const response = await fetch(`${API_URL}/api/upload/validate`, {
+            method: 'POST',
             body: formData,
             mode: 'cors',
-      })
+        });
       const data = await response.json()
       console.log(data, "data")
       
