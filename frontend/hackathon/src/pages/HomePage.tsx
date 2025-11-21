@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import CSVUploadPopup from '@/components/features/CSVUploadPopup'
 import { toast } from 'sonner'
+import {API_URL} from "@/lib/config.ts";
 export default function HomePage() {
   const { currentHackathon, replaceCurrentHackathonParticipants } = useHackathon();
   const [showCSVPopup, setShowCSVPopup] = useState(false);
@@ -13,7 +14,7 @@ export default function HomePage() {
 
   const handleCSVUploadComplete = async (previewId: string) => {
     try {
-      const response = await fetch('http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/upload/import', {
+      const response = await fetch(`${API_URL}/api/upload/import`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,7 +31,7 @@ export default function HomePage() {
       const data = await response.json()
       console.log(data, "data")
 
-      const participantsResp = await fetch('http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/participants/all', {
+      const participantsResp = await fetch(`${API_URL}/api/participants/all`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       })

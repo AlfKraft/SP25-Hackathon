@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, type Edge, type Node, type NodeChange, type Connection, type EdgeChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import {API_URL} from "@/lib/config.ts";
 
 interface Team {
   id: string;
@@ -117,13 +118,13 @@ export default function TeambuilderPage() {
   const handleGenerateTeams = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/teams/generate?teamSize=${teamSize}`, {
+      const response = await fetch(`${API_URL}/api/teams/generate?teamSize=${teamSize}`, {
         method: 'POST'
       })
       if (response.ok) {
         const generateData = await response.json()
         const generationId = generateData.generationId
-        const teamsResponse = await fetch(`http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/teams?generationId=${generationId}`)
+        const teamsResponse = await fetch(`${API_URL}/api/teams?generationId=${generationId}`)
         const teamsData: Team[] = await teamsResponse.json()
         
         // Convert teams to graph
