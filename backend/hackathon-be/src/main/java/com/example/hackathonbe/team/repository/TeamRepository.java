@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface TeamRepository extends JpaRepository<Team, UUID> {
     List<Team> findByGenerationIdOrderByScoreDesc(UUID generationId);
+    void deleteByHackathonId(Long hackathonId);
+    List<Team> findByHackathonId(Long hackathonId);
 }

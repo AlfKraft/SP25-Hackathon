@@ -32,7 +32,7 @@ public class TeamService {
     public UUID generateTeams(Integer requestedTeamSize, Long hackathonId) {
         int targetTeamSize = (requestedTeamSize == null || requestedTeamSize < 3) ? 4 : requestedTeamSize;
 
-        // 1) Load candidates for this hackathon
+        // 1) Load hackathon & candidates
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + hackathonId));
 
@@ -50,41 +50,73 @@ public class TeamService {
         }
 
         if (candidates.isEmpty()) {
-            // Nothing to generate
+            // Nothing to generate, but still return a generationId for consistency
             return UUID.randomUUID();
         }
 
-        // 2) Seed initial teams with strongest candidates (motivation + years of experience)
-        candidates.sort(Comparator.comparingInt((Candidate candidate) ->
-                candidate.motivation + candidate.yearsExperience).reversed());
+        // 2) Delete previous teams for this hackathon.
+        //    Because of cascade = ALL + orphanRemoval on Team.members,
+        //    all TeamMember rows for these Teams will be deleted automatically.
+        List<Team> existingTeams = teamRepository.findByHackathonId(hackathonId);
+        if (!existingTeams.isEmpty()) {
+            teamRepository.deleteAll(existingTeams);
+        }
 
-        int numberOfTeams = Math.max(1, candidates.size() / targetTeamSize);
+        // 3) Sort candidates by strength (motivation + years of experience)
+        candidates.sort(Comparator.comparingInt(
+                (Candidate c) -> c.motivation + c.yearsExperience
+        ).reversed());
+
+        int totalCandidates = candidates.size();
+
+        // 4) Compute number of teams and balanced max sizes
+        //    Example: 15 participants, targetTeamSize=4
+        //      numberOfTeams = ceil(15 / 4) = 4
+        //      baseSize = 15 / 4 = 3
+        //      extra   = 15 % 4 = 3  -> sizes: 4,4,4,3
+        int numberOfTeams = (int) Math.ceil((double) totalCandidates / (double) targetTeamSize);
+        numberOfTeams = Math.max(1, numberOfTeams);
+
+        int baseSize = totalCandidates / numberOfTeams;   // minimum size for each team
+        int extra = totalCandidates % numberOfTeams;      // first 'extra' teams get baseSize + 1
+
+        List<Integer> teamMaxSizes = new ArrayList<>(numberOfTeams);
+        for (int i = 0; i < numberOfTeams; i++) {
+            int maxSize = baseSize + (i < extra ? 1 : 0);
+            teamMaxSizes.add(maxSize);
+        }
+
+        // 5) Seed teams with strongest candidates
         List<TeamBuild> teamBuilds = new ArrayList<>();
-
-        for (int i = 0; i < numberOfTeams && i < candidates.size(); i++) {
+        for (int i = 0; i < numberOfTeams && i < totalCandidates; i++) {
             TeamBuild teamBuild = new TeamBuild("Team " + (i + 1));
-            teamBuild.addMember(candidates.get(i)); // seed with one strong candidate
+            teamBuild.addMember(candidates.get(i)); // one strong seed per team
             teamBuilds.add(teamBuild);
         }
 
-        // 3) Assign remaining candidates
+        // 6) Assign remaining candidates while respecting per-team max sizes
         Set<Long> alreadyAssignedParticipantIds = teamBuilds.stream()
-                .flatMap(teamBuild -> teamBuild.members.stream())
-                .map(candidate -> candidate.participantId)
+                .flatMap(tb -> tb.members.stream())
+                .map(c -> c.participantId)
                 .collect(Collectors.toSet());
 
         List<Candidate> unassignedCandidates = candidates.stream()
-                .filter(candidate -> !alreadyAssignedParticipantIds.contains(candidate.participantId))
+                .filter(c -> !alreadyAssignedParticipantIds.contains(c.participantId))
                 .toList();
 
         for (Candidate candidate : unassignedCandidates) {
             TeamBuild bestTeam = null;
             double bestGain = Double.NEGATIVE_INFINITY;
 
-            for (TeamBuild teamBuild : teamBuilds) {
-                if (teamBuild.members.size() >= targetTeamSize) {
-                    continue;
+            // Prefer teams that are not yet at their max size
+            for (int i = 0; i < teamBuilds.size(); i++) {
+                TeamBuild teamBuild = teamBuilds.get(i);
+                int maxSize = teamMaxSizes.get(i);
+
+                if (teamBuild.members.size() >= maxSize) {
+                    continue; // team full
                 }
+
                 double gain = teamBuild.calculateMarginalGain(candidate);
                 if (gain > bestGain) {
                     bestGain = gain;
@@ -92,22 +124,22 @@ public class TeamService {
                 }
             }
 
+            // Fallback: if somehow all are "full", place in best-fitting team anyway
             if (bestTeam == null) {
-                // All teams are at or above target size; assign to team where candidate fits best
                 bestTeam = teamBuilds.stream()
-                        .max(Comparator.comparingDouble(teamBuild -> teamBuild.calculateMarginalGain(candidate)))
+                        .max(Comparator.comparingDouble(tb -> tb.calculateMarginalGain(candidate)))
                         .orElse(teamBuilds.get(0));
             }
 
             bestTeam.addMember(candidate);
         }
 
-        // 4) Recompute final scores
+        // 7) Recompute final scores
         for (TeamBuild teamBuild : teamBuilds) {
             teamBuild.recomputeScore();
         }
 
-        // 5) Persist teams and members
+        // 8) Persist new generation of teams & members
         UUID generationId = UUID.randomUUID();
 
         for (TeamBuild teamBuild : teamBuilds) {
@@ -115,24 +147,29 @@ public class TeamService {
             team.setName(teamBuild.name);
             team.setScore(teamBuild.score);
             team.setGenerationId(generationId);
-            team.setHackathon(hackathon); // assuming Team has a hackathon field
-            teamRepository.save(team);
+            team.setHackathon(hackathon);
 
+            // build members and attach via the association
             for (Candidate candidate : teamBuild.members) {
-                TeamMember teamMember = new TeamMember();
-                teamMember.setTeamId(team.getId());
-                teamMember.setParticipantId(candidate.participantId);
-                teamMember.setRoleSnapshot(candidate.role);
-                teamMember.setSkillsSnapshot(String.join(";", candidate.skills));
-                teamMember.setMotivationSnapshot(candidate.motivation);
-                teamMember.setYearsExperienceSnapshot(candidate.yearsExperience);
-                teamMember.setGenerationId(generationId);
-                teamMemberRepository.save(teamMember);
+                TeamMember member = new TeamMember();
+                member.setTeam(team);  // important: use the entity, not an ID
+                member.setGenerationId(generationId);
+                member.setParticipantId(candidate.participantId);
+                member.setRoleSnapshot(candidate.role);
+                member.setSkillsSnapshot(String.join(";", candidate.skills));
+                member.setMotivationSnapshot(candidate.motivation);
+                member.setYearsExperienceSnapshot(candidate.yearsExperience);
+
+                team.getMembers().add(member);
             }
+
+            // cascade = ALL on Team.members will persist TeamMember entities
+            teamRepository.save(team);
         }
 
         return generationId;
     }
+
 
     @Transactional(readOnly = true)
     public List<TeamDTO> getTeams(UUID generationId) {
@@ -140,14 +177,18 @@ public class TeamService {
                 ? teamRepository.findAll()
                 : teamRepository.findByGenerationIdOrderByScoreDesc(generationId);
 
-        Map<UUID, List<TeamMember>> membersByTeamId = teamMemberRepository.findAll()
-                .stream()
-                .collect(Collectors.groupingBy(TeamMember::getTeamId));
-
         return teams.stream()
-                .map(team -> new TeamDTO(team, membersByTeamId.getOrDefault(team.getId(), List.of())))
+                .map(team -> {
+                    // if members is null, fall back to empty list
+                    List<TeamMember> members = team.getMembers() != null
+                            ? team.getMembers()
+                            : List.of();
+
+                    return new TeamDTO(team, members);
+                })
                 .toList();
     }
+
 
     @Transactional
     public TeamDTO renameTeam(UUID teamId, UpdateTeamNameRequest request) {
@@ -173,8 +214,10 @@ public class TeamService {
 
         UUID generationId = team.getGenerationId();
         List<Long> participantIds = request.participantIds();
+
+        // If nothing to add, just return current members from the association
         if (participantIds == null || participantIds.isEmpty()) {
-            List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
+            List<TeamMember> members = team.getMembers() != null ? team.getMembers() : List.of();
             return new TeamDTO(team, members);
         }
 
@@ -186,20 +229,28 @@ public class TeamService {
             // Ensure participant not already in some team in this generation
             if (teamMemberRepository.existsByGenerationIdAndParticipantId(generationId, participantId)) {
                 // You can choose to skip instead of throw, if you prefer.
-                throw new IllegalStateException("Participant " + participantId + " is already in a team for this generation");
+                throw new IllegalStateException(
+                        "Participant " + participantId + " is already in a team for this generation"
+                );
             }
 
             TeamMember tm = new TeamMember();
-            tm.setTeamId(teamId);
+            tm.setTeam(team);                 // 👈 use entity, not ID
             tm.setGenerationId(generationId);
             tm.setParticipantId(participantId);
-            // snapshot fields can stay null for manual additions, or you can fill them later
-            teamMemberRepository.save(tm);
+            // snapshot fields can stay null for manual additions, or you can fill them here
+
+            // Attach to the team so cascade persists it
+            team.getMembers().add(tm);
         }
 
-        List<TeamMember> updatedMembers = teamMemberRepository.findByTeamId(teamId);
+        // Cascade from Team -> TeamMember will save new members
+        teamRepository.save(team);
+
+        List<TeamMember> updatedMembers = team.getMembers() != null ? team.getMembers() : List.of();
         return new TeamDTO(team, updatedMembers);
     }
+
 
     @Transactional
     public TeamDTO removeMember(UUID teamId, Long participantId) {
@@ -229,28 +280,55 @@ public class TeamService {
         UUID generationId = targetTeam.getGenerationId();
 
         // Find any existing membership for this participant in the same generation
-        var existingOpt = teamMemberRepository.findByGenerationIdAndParticipantId(generationId, participantId);
+        Optional<TeamMember> existingOpt =
+                teamMemberRepository.findByGenerationIdAndParticipantId(generationId, participantId);
 
         if (existingOpt.isPresent()) {
             TeamMember existing = existingOpt.get();
+            Team currentTeam = existing.getTeam();
 
             // Already in target team – nothing to do
-            if (targetTeamId.equals(existing.getTeamId())) {
+            if (currentTeam != null && targetTeamId.equals(currentTeam.getId())) {
                 return;
             }
 
-            existing.setTeamId(targetTeamId);
+            // Keep both sides of the association in sync
+            if (currentTeam != null && currentTeam.getMembers() != null) {
+                currentTeam.getMembers().remove(existing);
+            }
+
+            existing.setTeam(targetTeam);
             existing.setGenerationId(generationId);
+
+            if (targetTeam.getMembers() != null) {
+                targetTeam.getMembers().add(existing);
+            }
+
+            // Dirty-checking would be enough, but this is explicit
             teamMemberRepository.save(existing);
+
         } else {
             // Not in any team for this generation: add new membership
             TeamMember tm = new TeamMember();
-            tm.setTeamId(targetTeamId);
+            tm.setTeam(targetTeam);
             tm.setGenerationId(generationId);
             tm.setParticipantId(participantId);
+
+            if (targetTeam.getMembers() != null) {
+                targetTeam.getMembers().add(tm);
+            }
+
             teamMemberRepository.save(tm);
         }
     }
+
+    public void deleteTeam(UUID teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found: " + teamId));
+
+        teamRepository.delete(team);
+    }
+
 
     // ---- Internal model for candidate scoring
 

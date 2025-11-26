@@ -6,6 +6,8 @@ import lombok.Data;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -28,4 +30,10 @@ public class Team {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "hackathon_id", nullable = false)
     private Hackathon hackathon;
+
+    @OneToMany(mappedBy = "team",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private List<TeamMember> members = new ArrayList<>();
+
 }
