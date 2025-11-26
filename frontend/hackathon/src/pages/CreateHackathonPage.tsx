@@ -47,15 +47,27 @@ export default function CreateHackathonPage() {
       newErrors.location = 'Location must be less than 255 characters'
     }
 
+    const now = new Date()
+    
     if (!formData.startDate) {
       newErrors.startDate = 'Start date is required'
+    } else {
+      const start = new Date(formData.startDate)
+      if (start < now) {
+        newErrors.startDate = 'Start date must be in the present or future'
+      }
     }
 
     if (!formData.endDate) {
       newErrors.endDate = 'End date is required'
+    } else {
+      const end = new Date(formData.endDate)
+      if (end < now) {
+        newErrors.endDate = 'End date must be in the present or future'
+      }
     }
 
-    if (formData.startDate && formData.endDate) {
+    if (formData.startDate && formData.endDate && !newErrors.startDate && !newErrors.endDate) {
       const start = new Date(formData.startDate)
       const end = new Date(formData.endDate)
       if (end < start) {
@@ -93,7 +105,6 @@ export default function CreateHackathonPage() {
 
   const handleChange = (field: keyof HackathonCreateRequest, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
@@ -113,7 +124,6 @@ export default function CreateHackathonPage() {
         <h1 className="text-2xl font-bold mb-6">Create New Hackathon</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Info */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -149,7 +159,6 @@ export default function CreateHackathonPage() {
             </div>
           </div>
 
-          {/* Location & Dates */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Calendar className="h-5 w-5" />
@@ -179,6 +188,7 @@ export default function CreateHackathonPage() {
                   type="datetime-local"
                   value={formData.startDate}
                   onChange={(e) => handleChange('startDate', e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
                   className={errors.startDate ? 'border-red-500' : ''}
                 />
                 {errors.startDate && <p className="text-sm text-red-500">{errors.startDate}</p>}
@@ -192,6 +202,7 @@ export default function CreateHackathonPage() {
                   type="datetime-local"
                   value={formData.endDate}
                   onChange={(e) => handleChange('endDate', e.target.value)}
+                  min={formData.startDate || new Date().toISOString().slice(0, 16)}
                   className={errors.endDate ? 'border-red-500' : ''}
                 />
                 {errors.endDate && <p className="text-sm text-red-500">{errors.endDate}</p>}
@@ -199,7 +210,6 @@ export default function CreateHackathonPage() {
             </div>
           </div>
 
-          {/* Settings */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Settings className="h-5 w-5" />
@@ -251,7 +261,6 @@ export default function CreateHackathonPage() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-4 pt-4 border-t">
             <Button
               type="button"
