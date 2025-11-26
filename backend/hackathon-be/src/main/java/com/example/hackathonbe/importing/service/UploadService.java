@@ -199,36 +199,29 @@ public class UploadService {
 
         // 4) upsert (sync columns + jsonb)
         int inserted = 0, updated = 0;
-        List<Participant> toSave = new ArrayList<>();
         for (var e : byEmail.entrySet()) {
             String email = e.getKey();
             ObjectNode data = e.getValue();
-            Participant p = existing.get(email);
-            if (p == null) {
-                p = new Participant();
-                p.setEmail(email);
-                p.setFirstName(data.get("first_name").asText());
-                p.setLastName(data.get("last_name").asText());
+            Participant participant = existing.get(email);
+            if (participant == null) {
+                participant = new Participant();
+                participant.setEmail(email);
+                participant.setFirstName(data.get("first_name").asText());
+                participant.setLastName(data.get("last_name").asText());
                 inserted++;
             } else {
-                p.setFirstName(data.get("first_name").asText());
-                p.setLastName(data.get("last_name").asText());
+                participant.setFirstName(data.get("first_name").asText());
+                participant.setLastName(data.get("last_name").asText());
                 updated++;
             }
+            participant = participantRepository.save(participant);
+            hackathon.addParticipant(participant);
 
-            Optional<QuestionnaireAnswer> answer = questionnaireAnswerRepository.findByQuestionnaireAndParticipant(questionnaire, p);
-            QuestionnaireAnswer qa;
-            if (answer.isPresent()){
-                qa = answer.get();
-            } else {
-                qa = new QuestionnaireAnswer();
-                qa.setQuestionnaire(questionnaire);
-                qa.setParticipant(p);
-            }
-            qa.setData(data);
-            questionnaireAnswerRepository.save(qa);
-            hackathon.addParticipant(p);
-            toSave.add(p);
+            QuestionnaireAnswer questionnaireAnswer = new QuestionnaireAnswer();
+            questionnaireAnswer.setQuestionnaire(questionnaire);
+            questionnaireAnswer.setParticipant(participant);
+            questionnaireAnswer.setData(data);
+            questionnaireAnswerRepository.save(questionnaireAnswer);
         }
 
         hackathonRepository.save(hackathon);
