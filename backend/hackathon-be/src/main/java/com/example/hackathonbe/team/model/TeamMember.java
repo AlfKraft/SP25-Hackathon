@@ -13,8 +13,9 @@ public class TeamMember {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "team_id", nullable = false)
-    private UUID teamId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "team_id", nullable = false)
+    private Team team;
 
     @Column(name = "generation_id", nullable = false)
     private UUID generationId;

@@ -13,13 +13,13 @@ import com.example.hackathonbe.team.model.Team;
 import com.example.hackathonbe.team.model.TeamMember;
 import com.example.hackathonbe.team.repository.TeamMemberRepository;
 import com.example.hackathonbe.team.repository.TeamRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -39,7 +39,7 @@ class TeamServiceTest {
     @Mock
     private TeamMemberRepository teamMemberRepository;
 
-    // Needed by existing generateTeams logic; not used directly in these tests
+    // Needed by generateTeams logic
     @Mock
     private HackathonRepository hackathonRepository;
 
@@ -69,7 +69,12 @@ class TeamServiceTest {
         team.setHackathon(hackathon);
         team.setCreatedAt(OffsetDateTime.now());
         team.setScore(10.0);
+        team.setMembers(new ArrayList<>());
     }
+
+    // ------------------------------------------------------------------------
+    // generateTeams
+    // ------------------------------------------------------------------------
 
     @Test
     void generateTeams_whenNoParticipants_returnsRandomGenerationIdAndDoesNotPersist() {
@@ -99,6 +104,9 @@ class TeamServiceTest {
         when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
         when(hackathon.getParticipants()).thenReturn(new HashSet<>(List.of(p1, p2, p3)));
 
+        // no existing teams for this hackathon
+        when(teamRepository.findByHackathonId(hackathonId)).thenReturn(List.of());
+
         // questionnaire answers with valid data
         QuestionnaireAnswer a1 = mockAnswer(p1, "Alice", "One", "developer", 5, 2, "java,spring");
         QuestionnaireAnswer a2 = mockAnswer(p2, "Bob", "Two", "designer", 4, 3, "ux,ui");
@@ -117,17 +125,31 @@ class TeamServiceTest {
 
         assertThat(resultGenerationId).isNotNull();
 
-        // All saved teams should carry that generationId
+        // All saved teams should carry that generationId and all members should as well
         ArgumentCaptor<Team> teamCaptor = ArgumentCaptor.forClass(Team.class);
         verify(teamRepository, atLeastOnce()).save(teamCaptor.capture());
 
-        assertThat(teamCaptor.getAllValues())
+        List<Team> savedTeams = teamCaptor.getAllValues();
+        assertThat(savedTeams)
                 .isNotEmpty()
                 .extracting(Team::getGenerationId)
                 .containsOnly(resultGenerationId);
 
-        // 3 participants -> all should become members
-        verify(teamMemberRepository, times(3)).save(any(TeamMember.class));
+        int totalMembers = savedTeams.stream()
+                .map(Team::getMembers)
+                .filter(Objects::nonNull)
+                .mapToInt(List::size)
+                .sum();
+
+        assertThat(totalMembers).isEqualTo(3);
+
+        // Members should have that generationId too
+        savedTeams.stream()
+                .flatMap(t -> t.getMembers().stream())
+                .forEach(m -> assertThat(m.getGenerationId()).isEqualTo(resultGenerationId));
+
+        // generateTeams now uses cascade; no direct TeamMemberRepository.save() expected here
+        verify(teamMemberRepository, never()).save(any());
     }
 
     private Participant mockParticipant(Long id) {
@@ -173,6 +195,7 @@ class TeamServiceTest {
         t1.setGenerationId(generationId);
         t1.setScore(5.0);
         t1.setCreatedAt(OffsetDateTime.now());
+        t1.setMembers(new ArrayList<>());
 
         Team t2 = new Team();
         t2.setId(UUID.randomUUID());
@@ -180,23 +203,25 @@ class TeamServiceTest {
         t2.setGenerationId(generationId);
         t2.setScore(4.0);
         t2.setCreatedAt(OffsetDateTime.now());
+        t2.setMembers(new ArrayList<>());
 
         when(teamRepository.findByGenerationIdOrderByScoreDesc(generationId))
                 .thenReturn(List.of(t1, t2));
 
         TeamMember m1 = new TeamMember();
-        m1.setTeamId(t1.getId());
+        m1.setTeam(t1);
         m1.setParticipantId(1L);
+        t1.getMembers().add(m1);
 
         TeamMember m2 = new TeamMember();
-        m2.setTeamId(t2.getId());
+        m2.setTeam(t2);
         m2.setParticipantId(2L);
+        t2.getMembers().add(m2);
 
         TeamMember m3 = new TeamMember();
-        m3.setTeamId(t1.getId());
+        m3.setTeam(t1);
         m3.setParticipantId(3L);
-
-        when(teamMemberRepository.findAll()).thenReturn(List.of(m1, m2, m3));
+        t1.getMembers().add(m3);
 
         List<TeamDTO> result = teamService.getTeams(generationId);
 
@@ -217,6 +242,7 @@ class TeamServiceTest {
 
         verify(teamRepository).findByGenerationIdOrderByScoreDesc(generationId);
         verify(teamRepository, never()).findAll();
+        verify(teamMemberRepository, never()).findAll();
     }
 
     @Test
@@ -224,32 +250,31 @@ class TeamServiceTest {
         Team t1 = new Team();
         t1.setId(UUID.randomUUID());
         t1.setName("Team 1");
+        t1.setMembers(new ArrayList<>());
 
         when(teamRepository.findAll()).thenReturn(List.of(t1));
-        when(teamMemberRepository.findAll()).thenReturn(List.of());
 
         List<TeamDTO> result = teamService.getTeams(null);
 
         assertThat(result).hasSize(1);
         verify(teamRepository).findAll();
         verify(teamRepository, never()).findByGenerationIdOrderByScoreDesc(any());
+        verify(teamMemberRepository, never()).findAll();
     }
 
-    // ---------- renameTeam ----------
+    // ------------------------------------------------------------------------
+    // renameTeam
+    // ------------------------------------------------------------------------
 
     @Test
     void renameTeam_updatesNameAndReturnsUpdatedDTO() {
-        // given
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
         when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(teamMemberRepository.findByTeamId(teamId)).thenReturn(List.of());
 
         UpdateTeamNameRequest request = new UpdateTeamNameRequest("New team name");
 
-        // when
         TeamDTO result = teamService.renameTeam(teamId, request);
 
-        // then
         assertThat(result.name()).isEqualTo("New team name");
         verify(teamRepository).save(argThat(t -> t.getName().equals("New team name")));
     }
@@ -265,84 +290,70 @@ class TeamServiceTest {
                 .hasMessageContaining("Team name must not be blank");
     }
 
-    // ---------- addMembers ----------
+    // ------------------------------------------------------------------------
+    // addMembers
+    // ------------------------------------------------------------------------
 
     @Test
     void addMembers_addsNewMembersAndReturnsUpdatedDTO() {
-        // given
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
         when(teamMemberRepository.existsByGenerationIdAndParticipantId(generationId, 100L))
                 .thenReturn(false);
         when(teamMemberRepository.existsByGenerationIdAndParticipantId(generationId, 200L))
                 .thenReturn(false);
-
-        TeamMember member1 = new TeamMember();
-        member1.setId(UUID.randomUUID());
-        member1.setTeamId(teamId);
-        member1.setGenerationId(generationId);
-        member1.setParticipantId(100L);
-
-        TeamMember member2 = new TeamMember();
-        member2.setId(UUID.randomUUID());
-        member2.setTeamId(teamId);
-        member2.setGenerationId(generationId);
-        member2.setParticipantId(200L);
-
-        when(teamMemberRepository.findByTeamId(teamId))
-                .thenReturn(List.of(member1, member2));
+        when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AddMembersRequest request = new AddMembersRequest(List.of(100L, 200L));
 
-        // when
         TeamDTO dto = teamService.addMembers(teamId, request);
 
-        // then
         assertThat(dto.members()).hasSize(2);
         assertThat(dto.members()).extracting("participantId")
                 .containsExactlyInAnyOrder(100L, 200L);
 
-        verify(teamMemberRepository, times(2)).save(any(TeamMember.class));
+        // New logic saves via Team (cascade)
+        verify(teamRepository).save(team);
     }
 
     @Test
     void addMembers_whenParticipantAlreadyInGeneration_throwsIllegalStateException() {
-        // given
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
         when(teamMemberRepository.existsByGenerationIdAndParticipantId(generationId, 100L))
                 .thenReturn(true);
 
         AddMembersRequest request = new AddMembersRequest(List.of(100L));
 
-        // when / then
         assertThatThrownBy(() -> teamService.addMembers(teamId, request))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("already in a team");
     }
 
-    // ---------- removeMember ----------
+    // ------------------------------------------------------------------------
+    // removeMember
+    // ------------------------------------------------------------------------
 
     @Test
     void removeMember_deletesMembershipAndReturnsUpdatedDTO() {
-        // given
         Long participantId = 123L;
 
         TeamMember existing = new TeamMember();
         existing.setId(UUID.randomUUID());
-        existing.setTeamId(teamId);
+        existing.setTeam(team);
         existing.setGenerationId(generationId);
         existing.setParticipantId(participantId);
 
-        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
-        when(teamMemberRepository.findByTeamIdAndParticipantId(teamId, participantId))
-                .thenReturn(Optional.of(existing));
-        when(teamMemberRepository.findByTeamId(teamId)).thenReturn(List.of());
+        team.getMembers().add(existing);
 
-        // when
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
         TeamDTO dto = teamService.removeMember(teamId, participantId);
 
-        // then
         assertThat(dto.members()).isEmpty();
-        verify(teamMemberRepository).delete(existing);
+        // Depending on your implementation you may rely purely on orphanRemoval or call delete().
+        // If you explicitly call delete(existing) in the service, keep this verify:
+        // verify(teamMemberRepository).delete(existing);
+        verify(teamRepository).save(team);
     }
 
     @Test
@@ -350,15 +361,15 @@ class TeamServiceTest {
         Long participantId = 999L;
 
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
-        when(teamMemberRepository.findByTeamIdAndParticipantId(teamId, participantId))
-                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> teamService.removeMember(teamId, participantId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("is not in team");
     }
 
-    // ---------- moveMember ----------
+    // ------------------------------------------------------------------------
+    // moveMember
+    // ------------------------------------------------------------------------
 
     @Test
     void moveMember_movesExistingMembershipToTargetTeam() {
@@ -369,10 +380,11 @@ class TeamServiceTest {
         targetTeam.setId(otherTeamId);
         targetTeam.setGenerationId(generationId);
         targetTeam.setHackathon(team.getHackathon());
+        targetTeam.setMembers(new ArrayList<>());
 
         TeamMember existing = new TeamMember();
         existing.setId(UUID.randomUUID());
-        existing.setTeamId(teamId); // currently in teamId
+        existing.setTeam(team); // currently in original team
         existing.setGenerationId(generationId);
         existing.setParticipantId(participantId);
 
@@ -382,13 +394,11 @@ class TeamServiceTest {
 
         MoveMemberRequest request = new MoveMemberRequest(participantId, otherTeamId);
 
-        // when
         teamService.moveMember(request);
 
-        // then
         verify(teamMemberRepository).save(argThat(tm ->
                 tm.getParticipantId().equals(participantId)
-                        && tm.getTeamId().equals(otherTeamId)
+                        && tm.getTeam() == targetTeam
                         && tm.getGenerationId().equals(generationId)
         ));
     }
@@ -402,6 +412,7 @@ class TeamServiceTest {
         targetTeam.setId(targetTeamId);
         targetTeam.setGenerationId(generationId);
         targetTeam.setHackathon(team.getHackathon());
+        targetTeam.setMembers(new ArrayList<>());
 
         when(teamRepository.findById(targetTeamId)).thenReturn(Optional.of(targetTeam));
         when(teamMemberRepository.findByGenerationIdAndParticipantId(generationId, participantId))
@@ -409,13 +420,11 @@ class TeamServiceTest {
 
         MoveMemberRequest request = new MoveMemberRequest(participantId, targetTeamId);
 
-        // when
         teamService.moveMember(request);
 
-        // then
         verify(teamMemberRepository).save(argThat(tm ->
                 tm.getParticipantId().equals(participantId)
-                        && tm.getTeamId().equals(targetTeamId)
+                        && tm.getTeam() == targetTeam
                         && tm.getGenerationId().equals(generationId)
         ));
     }
