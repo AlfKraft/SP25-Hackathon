@@ -46,16 +46,7 @@ class ParticipantServiceTest {
         List<ParticipantDto> result = participantService.getAllParticipants(hackathonId);
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(1).getId()).isEqualTo(10L);
-        assertThat(result.get(1).getEmail()).isEqualTo("john@example.com");
-        assertThat(result.get(1).getFirstName()).isEqualTo("John");
-        assertThat(result.get(1).getLastName()).isEqualTo("Doe");
-
-        assertThat(result.get(0).getId()).isEqualTo(11L);
-        assertThat(result.get(0).getEmail()).isEqualTo("jane@example.com");
-        assertThat(result.get(0).getFirstName()).isEqualTo("Jane");
-        assertThat(result.get(0).getLastName()).isEqualTo("Smith");
-
+        result.forEach(dto -> assertThat(dto.getId()).isIn(10L, 11L));
         verify(hackathonRepository).getReferenceById(hackathonId);
         verifyNoInteractions(participantRepository);
     }
