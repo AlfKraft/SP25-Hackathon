@@ -365,7 +365,7 @@ export default function TeambuilderPage() {
                 className="w-4 h-4 rounded" 
                 style={{ backgroundColor: calculateGradient(level) }}
               />
-              <span className="text-sm">{level} - {level === 1 ? 'Low' : level === 5 ? 'High' : ''}</span>
+              <span className="text-sm">{level}  {level === 1 ? '- Low' : level === 5 ? '- High' : ''}</span>
             </div>
           ))}
         </div>
