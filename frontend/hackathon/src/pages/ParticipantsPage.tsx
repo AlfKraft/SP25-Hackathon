@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Button } from '@/components/ui/button'
-import { SearchIcon, ArrowUpDown, Filter, Edit, Save, X, Trash2, RefreshCw, Users, Upload } from 'lucide-react'
+import { SearchIcon, Edit, Save, X, Trash2, RefreshCw, Users, Upload } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import type { Participant } from '@/types/hackathon'
 import { toast } from 'sonner'

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, type Edge, type Node, type NodeChange, type Connection, type EdgeChange, Background, Controls, MiniMap } from '@xyflow/react'
+import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, type Edge, type Node, type NodeChange, type Connection, type EdgeChange, Background, MiniMap } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { teamApi } from '@/services/api'
 import type { Team } from '@/types/hackathon'
