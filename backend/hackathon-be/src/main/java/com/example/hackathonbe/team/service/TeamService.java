@@ -257,17 +257,23 @@ public class TeamService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found: " + teamId));
 
-        TeamMember member = teamMemberRepository
-                .findByTeamIdAndParticipantId(teamId, participantId)
+        // Find membership from the in-memory collection
+        TeamMember toRemove = team.getMembers().stream()
+                .filter(m -> Objects.equals(m.getParticipantId(), participantId))
+                .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Participant " + participantId + " is not in team " + teamId)
-                );
+                        "Participant " + participantId + " is not in team " + teamId
+                ));
 
-        teamMemberRepository.delete(member);
+        // Remove from the collection
+        team.getMembers().remove(toRemove);
 
-        List<TeamMember> updatedMembers = teamMemberRepository.findByTeamId(teamId);
-        return new TeamDTO(team, updatedMembers);
+        teamRepository.save(team);
+
+        List<TeamMember> remaining = team.getMembers() != null ? team.getMembers() : List.of();
+        return new TeamDTO(team, remaining);
     }
+
 
     @Transactional
     public void moveMember(MoveMemberRequest request) {
