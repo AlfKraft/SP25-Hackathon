@@ -1,15 +1,43 @@
-import React, { createContext, useContext, useState} from 'react';
-import type {ReactNode} from 'react';
-import type { Hackathon, Participant } from '@/types/hackathon';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import type { 
+  Hackathon, 
+  Participant, 
+  HackathonCreateRequest,
+  HackathonUpdateRequest,
+  HackathonStatus 
+} from '@/types/hackathon';
+import { 
+  mapHackathonResponseToHackathon, 
+  mapParticipantDtoToParticipant 
+} from '@/types/hackathon';
+import { 
+  adminHackathonApi, 
+  participantApi 
+} from '@/services/api';
+import { toast } from 'sonner';
 
 interface HackathonContextType {
   hackathons: Hackathon[];
   currentHackathon: Hackathon | null;
+  
+  isLoading: boolean;
+  isLoadingParticipants: boolean;
+  error: string | null;
+  
   setCurrentHackathon: (hackathon: Hackathon) => void;
-  addParticipant: (participant: Omit<Participant, 'id' | 'joinedAt'>) => void;
+  selectHackathonById: (id: string) => void;
+  refreshHackathons: () => Promise<void>;
+  refreshParticipants: () => Promise<void>;
+  
+  addParticipant: (participant: Omit<Participant, 'id'>) => void;
   removeParticipant: (participantId: string) => void;
   updateParticipant: (participantId: string, updates: Partial<Participant>) => void;
-  createHackathon: (hackathon: Omit<Hackathon, 'id' | 'participants'>) => void;
+  replaceCurrentHackathonParticipants: (participants: Participant[]) => void;
+  
+  createHackathon: (hackathon: HackathonCreateRequest) => Promise<Hackathon | null>;
+  updateHackathon: (id: string, updates: HackathonUpdateRequest) => Promise<Hackathon | null>;
+  deleteHackathon: (id: string) => Promise<boolean>;
 }
 
 const HackathonContext = createContext<HackathonContextType | undefined>(undefined);
@@ -27,80 +55,101 @@ interface HackathonProviderProps {
 }
 
 export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }) => {
-  // Sample hackathon data
-  const [hackathons, setHackathons] = useState<Hackathon[]>([
-    {
-      id: '1',
-      name: 'AI Innovation Challenge',
-      description: 'Build AI-powered solutions for real-world problems',
-      startDate: new Date('2024-02-15'),
-      endDate: new Date('2024-02-17'),
-      location: 'San Francisco, CA',
-      theme: 'Artificial Intelligence',
-      maxParticipants: 100,
-      status: 'upcoming',
-      participants: [
-        
-      ]
-    },
-    {
-      id: '2',
-      name: 'Green Tech Hackathon',
-      description: 'Develop sustainable technology solutions',
-      startDate: new Date('2024-03-01'),
-      endDate: new Date('2024-03-03'),
-      location: 'Austin, TX',
-      theme: 'Sustainability',
-      maxParticipants: 80,
-      status: 'upcoming',
-      participants: [
-        {
-          id: 'p3',
-          name: 'Carol Davis',
-          email: 'carol@example.com',
-          motivation: 'I want to create a sustainable technology solution',
-          idea: true,
-          ideaName: 'Sustainable Technology Solution',
-          skills: ['Product Management', 'Strategy', 'Analytics']
+  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
+  const [currentHackathon, setCurrentHackathonState] = useState<Hackathon | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshHackathons = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await adminHackathonApi.getAll();
+      const fetchedHackathons = response.data.map(mapHackathonResponseToHackathon);
+      setHackathons(fetchedHackathons);
+      
+      if (!currentHackathon && fetchedHackathons.length > 0) {
+        setCurrentHackathonState(fetchedHackathons[0]);
+      } else if (currentHackathon) {
+        const updated = fetchedHackathons.find(h => h.id === currentHackathon.id);
+        if (updated) {
+          setCurrentHackathonState({
+            ...updated,
+            participants: currentHackathon.participants,
+          });
         }
-      ]
-    },
-    {
-      id: '3',
-      name: 'FinTech Revolution',
-      description: 'Innovate financial technology solutions',
-      startDate: new Date('2024-01-10'),
-      endDate: new Date('2024-01-12'),
-      location: 'New York, NY',
-      theme: 'Financial Technology',
-      maxParticipants: 120,
-      status: 'completed',
-      participants: [
+      }
+    } catch (err) {
+      console.error('Failed to fetch hackathons:', err);
+      setError('Failed to load hackathons. Please try again.');
+      
+      const fallbackHackathons: Hackathon[] = [
         {
-          id: 'p4',
-          name: 'David Wilson',
-          email: 'david@example.com',
-          motivation: 'I want to create a sustainable technology solution',
-          idea: true,
-          ideaName: 'Sustainable Technology Solution',
-          skills: ['Blockchain', 'Solidity', 'Web3'],
+          id: '1',
+          name: 'Sample Hackathon (Offline)',
+          description: 'Unable to connect to server. This is sample data.',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          location: 'Online',
+          status: 'OPEN' as HackathonStatus,
+          participants: [],
         },
-        {
-          id: 'p5',
-          name: 'Eva Brown',
-          email: 'eva@example.com',
-          motivation: 'I want to create a sustainable technology solution',
-          idea: true,
-          ideaName: 'Sustainable Technology Solution',
-          skills: ['Design Systems', 'Accessibility', 'Mobile Design'],
-        }
-      ]
+      ];
+      setHackathons(fallbackHackathons);
+      if (!currentHackathon) {
+        setCurrentHackathonState(fallbackHackathons[0]);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  }, [currentHackathon]);
 
-  const [currentHackathon, setCurrentHackathon] = useState<Hackathon | null>(hackathons[0]);
+  const refreshParticipants = useCallback(async () => {
+    if (!currentHackathon) return;
+    
+    setIsLoadingParticipants(true);
+    
+    try {
+      const response = await participantApi.getAll();
+      const participants = response.data.map(mapParticipantDtoToParticipant);
+      
+      setCurrentHackathonState(prev => prev ? { ...prev, participants } : null);
+      
+      setHackathons(prev => prev.map(h => 
+        h.id === currentHackathon.id ? { ...h, participants } : h
+      ));
+    } catch (err) {
+      console.error('Failed to fetch participants:', err);
+      toast.error('Failed to load participants');
+    } finally {
+      setIsLoadingParticipants(false);
+    }
+  }, [currentHackathon]);
 
-  const addParticipant = (participantData: Omit<Participant, 'id' | 'joinedAt'>) => {
+  useEffect(() => {
+    refreshHackathons();
+  }, []);
+
+  useEffect(() => {
+    if (currentHackathon && currentHackathon.participants.length === 0) {
+      refreshParticipants();
+    }
+  }, [currentHackathon?.id]);
+
+  const setCurrentHackathon = useCallback((hackathon: Hackathon) => {
+    setCurrentHackathonState(hackathon);
+  }, []);
+
+  const selectHackathonById = useCallback((id: string) => {
+    const hackathon = hackathons.find(h => h.id === id);
+    if (hackathon) {
+      setCurrentHackathonState(hackathon);
+    }
+  }, [hackathons]);
+
+  const addParticipant = useCallback((participantData: Omit<Participant, 'id'>) => {
     if (!currentHackathon) return;
 
     const newParticipant: Participant = {
@@ -114,13 +163,13 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
         : hackathon
     ));
 
-    setCurrentHackathon(prev => prev ? {
+    setCurrentHackathonState(prev => prev ? {
       ...prev,
       participants: [...prev.participants, newParticipant]
     } : null);
-  };
+  }, [currentHackathon]);
 
-  const removeParticipant = (participantId: string) => {
+  const removeParticipant = useCallback((participantId: string) => {
     if (!currentHackathon) return;
 
     setHackathons(prev => prev.map(hackathon => 
@@ -129,13 +178,13 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
         : hackathon
     ));
 
-    setCurrentHackathon(prev => prev ? {
+    setCurrentHackathonState(prev => prev ? {
       ...prev,
       participants: prev.participants.filter(p => p.id !== participantId)
     } : null);
-  };
+  }, [currentHackathon]);
 
-  const updateParticipant = (participantId: string, updates: Partial<Participant>) => {
+  const updateParticipant = useCallback((participantId: string, updates: Partial<Participant>) => {
     if (!currentHackathon) return;
 
     setHackathons(prev => prev.map(hackathon => 
@@ -149,32 +198,101 @@ export const HackathonProvider: React.FC<HackathonProviderProps> = ({ children }
         : hackathon
     ));
 
-    setCurrentHackathon(prev => prev ? {
+    setCurrentHackathonState(prev => prev ? {
       ...prev,
       participants: prev.participants.map(p => 
         p.id === participantId ? { ...p, ...updates } : p
       )
     } : null);
-  };
+  }, [currentHackathon]);
 
-  const createHackathon = (hackathonData: Omit<Hackathon, 'id' | 'participants'>) => {
-    const newHackathon: Hackathon = {
-      ...hackathonData,
-      id: `h${Date.now()}`,
-      participants: []
-    };
+  const replaceCurrentHackathonParticipants = useCallback((participants: Participant[]) => {
+    if (!currentHackathon) return;
 
-    setHackathons(prev => [...prev, newHackathon]);
-  };
+    setHackathons(prev => prev.map(hackathon =>
+      hackathon.id === currentHackathon.id
+        ? { ...hackathon, participants }
+        : hackathon
+    ));
+
+    setCurrentHackathonState(prev => prev ? { ...prev, participants } : null);
+  }, [currentHackathon]);
+
+  const createHackathon = useCallback(async (data: HackathonCreateRequest): Promise<Hackathon | null> => {
+    try {
+      const response = await adminHackathonApi.create(data);
+      const newHackathon = mapHackathonResponseToHackathon(response.data);
+      
+      setHackathons(prev => [...prev, newHackathon]);
+      toast.success('Hackathon created successfully');
+      
+      return newHackathon;
+    } catch (err) {
+      console.error('Failed to create hackathon:', err);
+      return null;
+    }
+  }, []);
+
+  const updateHackathon = useCallback(async (id: string, data: HackathonUpdateRequest): Promise<Hackathon | null> => {
+    try {
+      const response = await adminHackathonApi.update(Number(id), data);
+      const updatedHackathon = mapHackathonResponseToHackathon(response.data);
+      
+      const existingHackathon = hackathons.find(h => h.id === id);
+      if (existingHackathon) {
+        updatedHackathon.participants = existingHackathon.participants;
+      }
+      
+      setHackathons(prev => prev.map(h => h.id === id ? updatedHackathon : h));
+      
+      if (currentHackathon?.id === id) {
+        setCurrentHackathonState(updatedHackathon);
+      }
+      
+      toast.success('Hackathon updated successfully');
+      return updatedHackathon;
+    } catch (err) {
+      console.error('Failed to update hackathon:', err);
+      return null;
+    }
+  }, [hackathons, currentHackathon]);
+
+  const deleteHackathon = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      await adminHackathonApi.delete(Number(id));
+      
+      setHackathons(prev => prev.filter(h => h.id !== id));
+      
+      if (currentHackathon?.id === id) {
+        const remaining = hackathons.filter(h => h.id !== id);
+        setCurrentHackathonState(remaining.length > 0 ? remaining[0] : null);
+      }
+      
+      toast.success('Hackathon deleted successfully');
+      return true;
+    } catch (err) {
+      console.error('Failed to delete hackathon:', err);
+      return false;
+    }
+  }, [hackathons, currentHackathon]);
 
   const value: HackathonContextType = {
     hackathons,
     currentHackathon,
+    isLoading,
+    isLoadingParticipants,
+    error,
     setCurrentHackathon,
+    selectHackathonById,
+    refreshHackathons,
+    refreshParticipants,
     addParticipant,
     removeParticipant,
     updateParticipant,
-    createHackathon
+    replaceCurrentHackathonParticipants,
+    createHackathon,
+    updateHackathon,
+    deleteHackathon,
   };
 
   return (
