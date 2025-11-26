@@ -46,7 +46,6 @@ export default function HomePage() {
     toast.success('Participants refreshed');
   }
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -58,7 +57,6 @@ export default function HomePage() {
     );
   }
 
-  // Error state
   if (error && !currentHackathon) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -90,7 +88,6 @@ export default function HomePage() {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Hackathon Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Details</h3>
               <div className="space-y-3 text-sm">
@@ -115,7 +112,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Admin info if available */}
               {(currentHackathon.requireApproval !== undefined || currentHackathon.allowTeamCreation !== undefined) && (
                 <div className="pt-4 border-t space-y-2">
                   <h4 className="font-medium text-sm">Settings</h4>
@@ -135,7 +131,6 @@ export default function HomePage() {
               )}
             </div>
             
-            {/* Participants Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium flex items-center gap-2">
