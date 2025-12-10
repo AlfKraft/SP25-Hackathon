@@ -1,8 +1,8 @@
 package com.example.hackathonbe.importing.service;
 
 import com.example.hackathonbe.hackathon.model.*;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
-import com.example.hackathonbe.hackathon.repositories.QuestionnaireAnswerRepository;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
+import com.example.hackathonbe.hackathon.repository.QuestionnaireAnswerRepository;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;

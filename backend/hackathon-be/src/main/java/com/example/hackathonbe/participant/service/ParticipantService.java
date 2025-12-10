@@ -1,13 +1,12 @@
 package com.example.hackathonbe.participant.service;
 
 import com.example.hackathonbe.hackathon.model.Hackathon;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.example.hackathonbe.participant.dto.ParticipantDto;
 import com.example.hackathonbe.participant.dto.ParticipantInfoResponse;
 import com.example.hackathonbe.participant.dto.ParticipantUpdateRequest;
 import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
-import jakarta.servlet.http.Part;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

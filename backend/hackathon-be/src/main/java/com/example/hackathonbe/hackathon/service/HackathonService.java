@@ -1,10 +1,9 @@
 package com.example.hackathonbe.hackathon.service;
 
-import com.example.hackathonbe.hackathon.dto.HackathonAdminResponse;
 import com.example.hackathonbe.hackathon.dto.HackathonResponse;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.example.hackathonbe.common.exceptions;
 
-import com.example.hackathonbe.hackathon.exeption.HackathonValidationException;
+import com.example.hackathonbe.hackathon.exception.HackathonValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;

@@ -2,8 +2,8 @@ package com.example.hackathonbe.team.service;
 
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.QuestionnaireAnswer;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
-import com.example.hackathonbe.hackathon.repositories.QuestionnaireAnswerRepository;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
+import com.example.hackathonbe.hackathon.repository.QuestionnaireAnswerRepository;
 import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.team.dto.TeamDTO;
 import com.example.hackathonbe.team.dto.TeamEditRequests.AddMembersRequest;

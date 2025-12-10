@@ -56,7 +56,7 @@ class AdminHackathonControllerTest {
         );
 
         Hackathon created = sampleHackathon(1L, "New Hack", HackathonStatus.DRAFT);
-        when(hackathonService.createHackathon(any(HackathonCreateRequest.class))).thenReturn(created);
+        when(hackathonService.createHackathon(any(HackathonCreateRequest.class), any())).thenReturn(created);
 
         mockMvc.perform(post("/api/admin/hackathons")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -66,7 +66,7 @@ class AdminHackathonControllerTest {
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.name").value("New Hack"));
 
-        verify(hackathonService).createHackathon(request);
+        verify(hackathonService).createHackathon(request, any());
     }
 
     @Test

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -22,8 +23,9 @@ public class AdminHackathonController {
     private final AdminHackathonService hackathonService;
 
     @PostMapping
-    public ResponseEntity<HackathonAdminResponse> create(@Valid @RequestBody HackathonCreateRequest request) {
-        Hackathon created = hackathonService.createHackathon(request);
+    public ResponseEntity<HackathonAdminResponse> create(@Valid @RequestBody HackathonCreateRequest request, Authentication authentication) {
+        Long organizerId = (Long) authentication.getPrincipal();
+        Hackathon created = hackathonService.createHackathon(request, organizerId);
         HackathonAdminResponse body = HackathonAdminResponse.fromEntity(created);
 
         return ResponseEntity

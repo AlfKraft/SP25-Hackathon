@@ -12,16 +12,17 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
 import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
-import com.example.hackathonbe.hackathon.exeption.HackathonValidationException;
+import com.example.hackathonbe.hackathon.exception.HackathonValidationException;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -90,7 +91,7 @@ class HackathonAdminServiceTest {
                     return h;
                 });
 
-        Hackathon created = hackathonService.createHackathon(request);
+        Hackathon created = hackathonService.createHackathon(request, any());
 
         assertNotNull(created.getId());
         assertEquals("Test Hackathon", created.getName());
@@ -109,7 +110,7 @@ class HackathonAdminServiceTest {
 
         HackathonValidationException ex = assertThrows(
                 HackathonValidationException.class,
-                () -> hackathonService.createHackathon(request)
+                () -> hackathonService.createHackathon(request, any())
         );
 
         assertTrue(ex.getMessage().contains("must contain a 'questions' array"));
@@ -128,7 +129,7 @@ class HackathonAdminServiceTest {
 
         HackathonValidationException ex = assertThrows(
                 HackathonValidationException.class,
-                () -> hackathonService.createHackathon(request)
+                () -> hackathonService.createHackathon(request, any())
         );
 
         assertTrue(ex.getMessage().contains("Questionnaire must be a JSON object"));
@@ -166,7 +167,7 @@ class HackathonAdminServiceTest {
                     return h;
                 });
 
-        Hackathon created = hackathonService.createHackathon(request);
+        Hackathon created = hackathonService.createHackathon(request, any());
 
         assertEquals(42L, created.getId());
         assertNotNull(created.getQuestionnaire());
@@ -188,7 +189,7 @@ class HackathonAdminServiceTest {
 
         HackathonValidationException ex = assertThrows(
                 HackathonValidationException.class,
-                () -> hackathonService.createHackathon(request)
+                () -> hackathonService.createHackathon(request, any())
         );
 
         assertTrue(ex.getMessage().contains("Start date cannot be after end date"));

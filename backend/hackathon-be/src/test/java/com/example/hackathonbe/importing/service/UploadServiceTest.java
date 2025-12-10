@@ -1,9 +1,8 @@
 package com.example.hackathonbe.importing.service;
 
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
-import com.example.hackathonbe.importing.service.UploadService;
 import com.example.hackathonbe.importing.model.ValidationReport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

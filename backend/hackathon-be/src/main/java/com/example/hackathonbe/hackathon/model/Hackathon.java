@@ -1,4 +1,5 @@
 package com.example.hackathonbe.hackathon.model;
+import com.example.hackathonbe.auth.model.User;
 import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.team.model.Team;
 import jakarta.persistence.*;
@@ -59,6 +60,10 @@ public class Hackathon {
             cascade = CascadeType.ALL,
             orphanRemoval = true)
     private Set<Team> teams = new HashSet<>();
+
+    @ManyToOne
+    User owner;
+
 
     public void addTeam(Team team) {
         teams.add(team);
