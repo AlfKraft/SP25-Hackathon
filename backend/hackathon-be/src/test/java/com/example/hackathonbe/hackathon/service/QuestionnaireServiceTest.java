@@ -5,8 +5,8 @@ import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.Questionnaire;
 import com.example.hackathonbe.hackathon.model.QuestionnaireSource;
 import com.example.hackathonbe.hackathon.model.QuestionnaireStatus;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
-import com.example.hackathonbe.hackathon.repositories.QuestionnaireRepository;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
+import com.example.hackathonbe.hackathon.repository.QuestionnaireRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Disabled;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 

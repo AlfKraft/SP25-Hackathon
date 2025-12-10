@@ -1,4 +1,4 @@
-package com.example.hackathonbe.hackathon.repositories;
+package com.example.hackathonbe.hackathon.repository;
 
 import com.example.hackathonbe.hackathon.model.Questionnaire;
 import com.example.hackathonbe.hackathon.model.QuestionnaireAnswer;

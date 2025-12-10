@@ -1,19 +1,19 @@
 package com.example.hackathonbe.hackathon.service;
 
+import com.example.hackathonbe.auth.model.User;
+import com.example.hackathonbe.auth.repository.UserRepository;
 import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
 import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
-import com.example.hackathonbe.hackathon.exeption.HackathonValidationException;
+import com.example.hackathonbe.hackathon.exception.HackathonValidationException;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
-import com.example.hackathonbe.hackathon.repositories.HackathonRepository;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -24,8 +24,11 @@ public class AdminHackathonService {
 
     private final HackathonRepository hackathonRepository;
     private final ObjectMapper objectMapper; // make sure you have Jackson on classpath
+    private final UserRepository userRepository;
+    public Hackathon createHackathon(HackathonCreateRequest request, Long organizerId) {
 
-    public Hackathon createHackathon(HackathonCreateRequest request) {
+        User owner = userRepository.findById(organizerId)
+                .orElseThrow(() -> new IllegalStateException("Owner not found: " + organizerId));
         validateCreateRequest(request);
 
         Hackathon hackathon = new Hackathon();
@@ -41,6 +44,7 @@ public class AdminHackathonService {
         hackathon.setBannerUrl(request.bannerUrl());
         hackathon.setCreatedAt(Instant.now());
         hackathon.setUpdatedAt(Instant.now());
+        hackathon.setOwner(owner);
 
         return hackathonRepository.save(hackathon);
     }
