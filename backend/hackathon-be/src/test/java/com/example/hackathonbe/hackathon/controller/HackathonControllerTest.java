@@ -1,5 +1,6 @@
 package com.example.hackathonbe.hackathon.controller;
 
+import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
 import com.example.hackathonbe.hackathon.dto.HackathonResponse;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
 import com.example.hackathonbe.hackathon.service.HackathonService;
@@ -31,6 +32,9 @@ class HackathonControllerTest {
 
     @MockBean
     HackathonService hackathonService;
+
+    @MockBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void listVisibleHackathons_returns200AndArray() throws Exception {

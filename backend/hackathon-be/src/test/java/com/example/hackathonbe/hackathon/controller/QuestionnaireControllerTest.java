@@ -1,5 +1,6 @@
 package com.example.hackathonbe.hackathon.controller;
 
+import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +32,9 @@ class QuestionnaireControllerTest {
 
     @MockBean
     QuestionnaireService questionnaireService;
+
+    @MockBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void getPublicQuestionnaire_returnsJson() throws Exception {

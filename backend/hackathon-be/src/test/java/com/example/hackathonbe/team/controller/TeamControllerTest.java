@@ -1,5 +1,6 @@
 package com.example.hackathonbe.team.controller;
 
+import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
 import com.example.hackathonbe.team.dto.TeamDTO;
 import com.example.hackathonbe.team.dto.TeamEditRequests.AddMembersRequest;
 import com.example.hackathonbe.team.dto.TeamEditRequests.MoveMemberRequest;
@@ -42,6 +43,9 @@ class TeamControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void getTeams_returnsListFromService() throws Exception {

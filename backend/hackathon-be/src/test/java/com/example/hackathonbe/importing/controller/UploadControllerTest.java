@@ -1,5 +1,6 @@
 package com.example.hackathonbe.importing.controller;
 
+import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
 import com.example.hackathonbe.importing.controller.UploadController;
 import com.example.hackathonbe.importing.service.UploadService;
 import com.example.hackathonbe.importing.model.ValidationReport;
@@ -8,7 +9,9 @@ import com.example.hackathonbe.importing.model.ValidationReport.TopError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -25,12 +28,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = UploadController.class)
-@WithMockUser // important for secured endpoints
+@AutoConfigureMockMvc(addFilters = false)
+@WithMockUser
 class UploadControllerTest {
 
     @Autowired MockMvc mvc;
 
     @MockitoBean UploadService uploadService;
+
+    @MockBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     @DisplayName("POST /api/upload/validate returns JSON with topErrorCodes and cell-level errors (with CSRF)")

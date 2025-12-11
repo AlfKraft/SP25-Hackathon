@@ -1,5 +1,6 @@
 package com.example.hackathonbe.participant.controller;
 
+import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
 import com.example.hackathonbe.participant.dto.ParticipantDto;
 import com.example.hackathonbe.participant.dto.ParticipantInfoResponse;
 import com.example.hackathonbe.participant.dto.ParticipantUpdateRequest;
@@ -38,6 +39,9 @@ class ParticipantControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void getAllParticipants_returnsListOfDtos() throws Exception {
