@@ -7,3 +7,9 @@ spring:
       maximum-pool-size: 10
   flyway:
     baseline-on-migrate: true  # set true only if prod schema pre-exists before Flyway
+app:
+  jwt:
+    # For our current JwtService using Decoders.BASE64:
+    # This MUST be a Base64-encoded string, at least 32 bytes when decoded.
+    secret: ${APP_JWT_SECRET}
+    expirationMillis: 86400000
