@@ -43,6 +43,11 @@ export default function Navbar() {
                                 </NavigationMenuLink>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
+                                <NavigationMenuLink asChild>
+                                    <Link to="/admin">Admin</Link>
+                                </NavigationMenuLink>
+                            </NavigationMenuItem>
+                            <NavigationMenuItem>
                                 <button
                                     type="button"
                                     onClick={handleLogoutClick}

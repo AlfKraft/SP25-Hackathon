@@ -19,10 +19,17 @@ public class UploadController {
 
     private final UploadService service;
 
-    @PostMapping(value = "/validate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ValidationReport validate(@RequestPart("file") MultipartFile file) throws Exception {
-        return service.validate(file);
+    @PostMapping(
+            value = "/validate",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ValidationReport> validate(
+            @RequestParam("file") MultipartFile file
+    ) throws Exception {
+        return ResponseEntity.ok(service.validate(file));
     }
+
 
     @PostMapping(value="/import", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ImportSummary> importValid(@RequestBody ImportRequest body) {

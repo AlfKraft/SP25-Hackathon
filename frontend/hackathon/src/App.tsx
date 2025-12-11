@@ -6,6 +6,9 @@ import TeambuilderPage from './pages/TeambuilderPage'
 import AuthPage from './pages/AuthPage'
 import {AuthProvider} from "@/contexts/AuthContext.tsx";
 import HackathonsPage from "@/pages/HackathonsPage.tsx";
+import RegisterPage from "@/pages/RegisterPage.tsx";
+import AdminHackathonsPage from "@/pages/AdminHackathonsPage.tsx";
+import HackathonAdminDashboard from "@/pages/HackathonAdminDashboard.tsx";
 
 function App() {
     return (
@@ -19,10 +22,12 @@ function App() {
                         <Routes>
                             {/* Auth / login page */}
                             <Route path="/" element={<HackathonsPage />} />
+                            <Route path="/admin" element={<AdminHackathonsPage />} />
                             <Route path="/login" element={<AuthPage />} />
-
+                            <Route path="/register" element={<RegisterPage/>}/>
+                            <Route path="/admin/hackathons/:id" element={<HackathonAdminDashboard />} />
                             {/* Protected-ish views (you can guard them later) */}
-                            <Route path="/participants" element={<ParticipantsPage />} />
+                            <Route path="/admin/hackathons/:id/participants" element={<ParticipantsPage />} />
                             <Route path="/team-builder" element={<TeambuilderPage />} />
                         </Routes>
                     </main>

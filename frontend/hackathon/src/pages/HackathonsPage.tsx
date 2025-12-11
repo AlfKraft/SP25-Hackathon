@@ -46,7 +46,7 @@ export default function HackathonsPage() {
             <div className="w-full flex flex-col items-center py-16">
                 <h1 className="text-3xl font-bold mb-2">Hackathons</h1>
                 <p className="text-slate-300 mb-4">
-                    No hackathons yet. Create one in the admin backend.
+                    No open hackathons yet.
                 </p>
             </div>
         )

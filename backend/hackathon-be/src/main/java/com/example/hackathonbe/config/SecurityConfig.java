@@ -34,7 +34,9 @@ public class SecurityConfig {
                                 "/health/**",
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/auth/logout"
+                                "/api/auth/logout",
+                                "/api/hackathons/*",
+                                "/api/hackathons"
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

@@ -1,5 +1,7 @@
 package com.example.hackathonbe.hackathon.service;
 
+import com.example.hackathonbe.auth.model.User;
+import com.example.hackathonbe.auth.repository.UserRepository;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,6 +32,9 @@ class HackathonAdminServiceTest {
 
     @Mock
     private HackathonRepository hackathonRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private AdminHackathonService hackathonService;
@@ -83,7 +88,9 @@ class HackathonAdminServiceTest {
     @Test
     void createHackathon_allGood_withNullQuestionnaire_shouldSucceed() {
         HackathonCreateRequest request = baseCreateRequest(null);
-
+        when(
+                userRepository.findById(any())
+        ).thenReturn(Optional.of(new User()));
         when(hackathonRepository.save(ArgumentMatchers.any(Hackathon.class)))
                 .thenAnswer(invocation -> {
                     Hackathon h = invocation.getArgument(0);
@@ -176,6 +183,9 @@ class HackathonAdminServiceTest {
 
     @Test
     void createHackathon_startAfterEnd_shouldFail() {
+        when(
+                userRepository.findById(any())
+        ).thenReturn(Optional.of(new User()));
         HackathonCreateRequest request = new HackathonCreateRequest(
                 "Test",
                 "Desc",
