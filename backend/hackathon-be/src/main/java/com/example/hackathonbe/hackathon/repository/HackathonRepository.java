@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface HackathonRepository extends JpaRepository<Hackathon, Long> {
     Optional<Hackathon> findBySlug(String slug);
     List<Hackathon> findByStatus(HackathonStatus status);
+
+    List<Hackathon> findByOwnerId(Long organizerId);
 }

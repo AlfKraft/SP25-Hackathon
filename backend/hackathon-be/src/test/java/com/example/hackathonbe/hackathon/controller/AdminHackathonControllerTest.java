@@ -100,7 +100,7 @@ class AdminHackathonControllerTest {
     void list_returns200WithArrayBody() throws Exception {
         Hackathon h1 = sampleHackathon(1L, "Hack 1", HackathonStatus.OPEN);
         Hackathon h2 = sampleHackathon(2L, "Hack 2", HackathonStatus.DRAFT);
-        when(hackathonService.listHackathons()).thenReturn(List.of(h1, h2));
+        when(hackathonService.listHackathonsByOrganizer(any())).thenReturn(List.of(h1, h2));
 
         mockMvc.perform(get("/api/admin/hackathons"))
                 .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class AdminHackathonControllerTest {
                 .andExpect(jsonPath("$[1].id").value(2L))
                 .andExpect(jsonPath("$[1].name").value("Hack 2"));
 
-        verify(hackathonService).listHackathons();
+        verify(hackathonService).listHackathonsByOrganizer(any());
     }
 
     @Test

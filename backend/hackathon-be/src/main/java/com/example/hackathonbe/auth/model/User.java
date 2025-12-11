@@ -13,21 +13,30 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "display_name")
+    @Column(nullable = false, length = 100)
+    private String firstName;
+
+    @Column(nullable = false, length = 100)
+    private String lastName;
+
+    @Column(length = 255)
+    private String organisation;
+
+    @Column(nullable = false, length = 255)
     private String displayName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "auth_provider", nullable = false)
+    @Column(nullable = false)
     private AuthProvider authProvider;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private UserRole role;
 
     @Column(nullable = false)

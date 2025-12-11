@@ -98,8 +98,8 @@ public class AdminHackathonService {
         }
     }
 
-    public List<Hackathon> listHackathons() {
-        return hackathonRepository.findAll();
+    public List<Hackathon> listHackathonsByOrganizer(Long organizerId) {
+        return hackathonRepository.findByOwnerId(organizerId);
     }
 
     public Optional<Hackathon> getById(Long id) {

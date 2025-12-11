@@ -28,16 +28,20 @@ public class AuthService {
             throw new IllegalArgumentException("Email already in use");
         }
 
-        User newUser = new User();
-        newUser.setEmail(request.email());
-        newUser.setDisplayName(request.displayName());
-        newUser.setPasswordHash(passwordEncoder.encode(request.password()));
-        newUser.setRole(UserRole.ORGANIZER);
-        newUser.setAuthProvider(AuthProvider.LOCAL);
-        newUser.setActive(true);
+        User user = new User();
+        user.setEmail(request.email());
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        user.setOrganisation(request.organisation());
+        user.setDisplayName(request.firstName() + " " + request.lastName());
+        user.setAuthProvider(AuthProvider.LOCAL);
+        user.setRole(UserRole.ORGANIZER);
+        user.setActive(true);
 
-        userRepository.save(newUser);
+        userRepository.save(user);
     }
+
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())

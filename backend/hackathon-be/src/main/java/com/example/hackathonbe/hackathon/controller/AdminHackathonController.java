@@ -41,8 +41,9 @@ public class AdminHackathonController {
     }
 
     @GetMapping
-    public ResponseEntity<List<HackathonAdminResponse>> list() {
-        List<HackathonAdminResponse> list = hackathonService.listHackathons()
+    public ResponseEntity<List<HackathonAdminResponse>> list(Authentication authentication) {
+        Long organizerId = (Long) authentication.getPrincipal();
+        List<HackathonAdminResponse> list = hackathonService.listHackathonsByOrganizer(organizerId)
                 .stream()
                 .map(HackathonAdminResponse::fromEntity)
                 .toList();
