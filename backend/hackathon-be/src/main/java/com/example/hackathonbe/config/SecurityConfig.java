@@ -54,7 +54,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",          // Vite dev
                 "http://localhost:4173",          // Vite preview (optional)
-                "https://api.ultimatehackathon.eu"   // TODO: replace with real prod URL
+                "https://ultimatehackathon.eu"   // TODO: replace with real prod URL
         ));
 
         // 🔹 Methods & headers you allow
