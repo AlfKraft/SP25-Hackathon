@@ -23,8 +23,10 @@ public class TeamEditRequests {
      * Also used for drag & drop UI.
      */
     public record MoveMemberRequest(
+            UUID fromTeamId,
             Long participantId,
-            UUID targetTeamId
+
+            UUID toTeamId
     ) {}
 
     public record RemoveMembersRequest(

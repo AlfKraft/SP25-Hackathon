@@ -223,7 +223,7 @@ class TeamServiceTest {
         m3.setParticipantId(3L);
         t1.getMembers().add(m3);
 
-        List<TeamDTO> result = teamService.getTeams(generationId);
+        List<TeamDTO> result = teamService.getTeams(1L);
 
         assertThat(result).hasSize(2);
 
@@ -392,7 +392,7 @@ class TeamServiceTest {
         when(teamMemberRepository.findByGenerationIdAndParticipantId(generationId, participantId))
                 .thenReturn(Optional.of(existing));
 
-        MoveMemberRequest request = new MoveMemberRequest(participantId, otherTeamId);
+        MoveMemberRequest request = new MoveMemberRequest(teamId, participantId, otherTeamId);
 
         teamService.moveMember(request);
 
@@ -405,6 +405,7 @@ class TeamServiceTest {
 
     @Test
     void moveMember_addsNewMembershipWhenNoneExists() {
+        UUID fromTeamId = UUID.randomUUID();
         Long participantId = 777L;
         UUID targetTeamId = UUID.randomUUID();
 
@@ -418,7 +419,7 @@ class TeamServiceTest {
         when(teamMemberRepository.findByGenerationIdAndParticipantId(generationId, participantId))
                 .thenReturn(Optional.empty());
 
-        MoveMemberRequest request = new MoveMemberRequest(participantId, targetTeamId);
+        MoveMemberRequest request = new MoveMemberRequest(fromTeamId, participantId, targetTeamId);
 
         teamService.moveMember(request);
 

@@ -47,17 +47,9 @@ class ParticipantControllerTest {
     void getAllParticipants_returnsListOfDtos() throws Exception {
         Long hackathonId = 1L;
 
-        ParticipantDto dto1 = new ParticipantDto();
-        dto1.setId(10L);
-        dto1.setEmail("john@example.com");
-        dto1.setFirstName("John");
-        dto1.setLastName("Doe");
+        ParticipantDto dto1 = new ParticipantDto(10L, "john@example.com", "John", "Doe");
 
-        ParticipantDto dto2 = new ParticipantDto();
-        dto2.setId(11L);
-        dto2.setEmail("jane@example.com");
-        dto2.setFirstName("Jane");
-        dto2.setLastName("Smith");
+        ParticipantDto dto2 = new ParticipantDto(11L, "jane@example.com", "Jane", "Smith");
 
         when(participantService.getAllParticipants(hackathonId))
                 .thenReturn(List.of(dto1, dto2));

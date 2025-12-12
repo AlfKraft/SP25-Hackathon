@@ -46,7 +46,7 @@ class ParticipantServiceTest {
         List<ParticipantDto> result = participantService.getAllParticipants(hackathonId);
 
         assertThat(result).hasSize(2);
-        result.forEach(dto -> assertThat(dto.getId()).isIn(10L, 11L));
+        result.forEach(dto -> assertThat(dto.id()).isIn(10L, 11L));
         verify(hackathonRepository).getReferenceById(hackathonId);
         verifyNoInteractions(participantRepository);
     }
