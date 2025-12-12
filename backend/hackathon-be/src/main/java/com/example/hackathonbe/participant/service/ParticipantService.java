@@ -59,5 +59,6 @@ public class ParticipantService {
         Hackathon hackathon = hackathonRepository.getReferenceById(hackathonId);
         Participant participant = hackathon.getParticipants().stream().filter(p -> p.getId().equals(id)).findFirst().orElseThrow();
         hackathon.getParticipants().remove(participant);
+        hackathonRepository.save(hackathon);
     }
 }

@@ -42,7 +42,7 @@ export interface Participant {
 }
 
 export interface Hackathon {
-  id: string;
+  id: number;
   name: string;
   description: string;
   startDate: Date;

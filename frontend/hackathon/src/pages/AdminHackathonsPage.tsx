@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // TODO: adjust to your actual HackathonStatus enum values
-const HACKATHON_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const
+const HACKATHON_STATUSES = ['DRAFT', 'OPEN', 'FINISHED', 'CLOSED'] as const
 type HackathonStatus = (typeof HACKATHON_STATUSES)[number]
 
 type AdminHackathon = {
