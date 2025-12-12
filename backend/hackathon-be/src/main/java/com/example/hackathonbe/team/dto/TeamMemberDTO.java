@@ -1,17 +1,18 @@
 package com.example.hackathonbe.team.dto;
 
+import com.example.hackathonbe.participant.dto.ParticipantDto;
 import com.example.hackathonbe.team.model.TeamMember;
 
 public record TeamMemberDTO(
-        Long participantId,
+        ParticipantDto participant,
         String role,
         String skills,
         Integer motivation,
         Integer yearsExperience
 ) {
-    public TeamMemberDTO(TeamMember m) {
+    public TeamMemberDTO(TeamMember m, ParticipantDto p) {
         this(
-                m.getParticipantId(),
+                p,
                 m.getRoleSnapshot(),
                 m.getSkillsSnapshot(),
                 m.getMotivationSnapshot(),

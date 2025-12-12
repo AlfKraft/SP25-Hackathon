@@ -12,14 +12,14 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/teams")
+@RequestMapping("/api/{hackathonId}/teams")
 @RequiredArgsConstructor
 public class TeamController {
 
     private final TeamService teamService;
 
     // POST /api/teams/generate?teamSize=4
-    @PostMapping("/{hackathonId}/generate")
+    @PostMapping("/generate")
     public ResponseEntity<Map<String, Object>> generate(@RequestParam(name = "teamSize", required = false) Integer teamSize,
                                                         @PathVariable Long hackathonId) {
         UUID generationId = teamService.generateTeams(teamSize, hackathonId);
@@ -31,8 +31,9 @@ public class TeamController {
 
     // GET /api/teams?generationId={uuid}
     @GetMapping
-    public ResponseEntity<List<TeamDTO>> getTeams(@RequestParam(name = "generationId", required = false) UUID generationId) {
-        return ResponseEntity.ok(teamService.getTeams(generationId));
+    public ResponseEntity<List<TeamDTO>> getTeams( @PathVariable Long hackathonId) {
+
+        return ResponseEntity.ok(teamService.getTeams(hackathonId));
     }
 
     // PATCH /api/teams/{teamId} – rename team

@@ -23,12 +23,7 @@ public class ParticipantService {
     public List<ParticipantDto> getAllParticipants(Long hackathonId) {
         Hackathon hackathon = hackathonRepository.getReferenceById(hackathonId);
         return hackathon.getParticipants().stream().map(participant -> {
-            ParticipantDto dto = new ParticipantDto();
-            dto.setId(participant.getId());
-            dto.setEmail(participant.getEmail());
-            dto.setFirstName(participant.getFirstName());
-            dto.setLastName(participant.getLastName());
-            return dto;
+            return new ParticipantDto(participant.getId(), participant.getFirstName(), participant.getLastName(), participant.getEmail());
         }).toList();
     }
 

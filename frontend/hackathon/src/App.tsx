@@ -10,6 +10,7 @@ import RegisterPage from "@/pages/RegisterPage.tsx";
 import AdminHackathonsPage from "@/pages/AdminHackathonsPage.tsx";
 import HackathonAdminDashboard from "@/pages/HackathonAdminDashboard.tsx";
 import HackathonQuestionnaireAdminPage from "@/pages/HackathonQuestionnaireAdminPage.tsx";
+import HackathonTeamsPage from "@/pages/HackathonTeamsPage.tsx";
 
 function App() {
     return (
@@ -28,6 +29,10 @@ function App() {
                             <Route path="/register" element={<RegisterPage/>}/>
                             <Route path="/admin/hackathons/:id" element={<HackathonAdminDashboard />} />
                             <Route path={"/admin/hackathons/:id/questionnaire"} element={<HackathonQuestionnaireAdminPage/>} />
+                            <Route
+                                path="/admin/hackathons/:id/teams"
+                                element={<HackathonTeamsPage />}
+                            />
                             {/* Protected-ish views (you can guard them later) */}
                             <Route path="/admin/hackathons/:id/participants" element={<ParticipantsPage />} />
                             <Route path="/team-builder" element={<TeambuilderPage />} />

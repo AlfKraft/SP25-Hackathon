@@ -1,7 +1,6 @@
 package com.example.hackathonbe.team.dto;
 
 import com.example.hackathonbe.team.model.Team;
-import com.example.hackathonbe.team.model.TeamMember;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -15,14 +14,14 @@ public record TeamDTO(
         OffsetDateTime createdAt,
         List<TeamMemberDTO> members
 ) {
-    public TeamDTO(Team t, List<TeamMember> ms) {
+    public TeamDTO(Team t, List<TeamMemberDTO> ms) {
         this(
                 t.getId(),
                 t.getName(),
                 t.getScore(),
                 t.getGenerationId(),
                 t.getCreatedAt(),
-                ms.stream().map(TeamMemberDTO::new).toList()
+                ms
         );
     }
 }

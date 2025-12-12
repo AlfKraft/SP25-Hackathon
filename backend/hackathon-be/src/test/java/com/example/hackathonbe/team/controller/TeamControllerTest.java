@@ -1,6 +1,7 @@
 package com.example.hackathonbe.team.controller;
 
 import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
+import com.example.hackathonbe.participant.dto.ParticipantDto;
 import com.example.hackathonbe.team.dto.TeamDTO;
 import com.example.hackathonbe.team.dto.TeamEditRequests.AddMembersRequest;
 import com.example.hackathonbe.team.dto.TeamEditRequests.MoveMemberRequest;
@@ -50,23 +51,24 @@ class TeamControllerTest {
     @Test
     void getTeams_returnsListFromService() throws Exception {
         UUID generationId = UUID.randomUUID();
+        Long hackathonId = 1L;
         TeamDTO dto = new TeamDTO(
                 UUID.randomUUID(),
                 "Team A",
                 10.0,
                 generationId,
                 OffsetDateTime.now(),
-                List.of(new TeamMemberDTO(1L, "Dev", "Java", 5, 3))
+                List.of(new TeamMemberDTO(new ParticipantDto(10L, "john@example.com", "John", "Doe"), "Dev", "Java", 5, 3))
         );
 
-        when(teamService.getTeams(generationId)).thenReturn(List.of(dto));
+        when(teamService.getTeams(hackathonId)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/teams")
+        mockMvc.perform(get("/api/1/teams")
                         .param("generationId", generationId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Team A"));
 
-        verify(teamService).getTeams(generationId);
+        verify(teamService).getTeams(hackathonId);
     }
 
     @Test
@@ -104,7 +106,7 @@ class TeamControllerTest {
                 10.0,
                 UUID.randomUUID(),
                 OffsetDateTime.now(),
-                List.of(new TeamMemberDTO(1L, "Dev", "Java", 5, 3))
+                List.of(new TeamMemberDTO(new ParticipantDto(10L, "john@example.com", "John", "Doe"), "Dev", "Java", 5, 3))
         );
 
         when(teamService.addMembers(eq(teamId), any())).thenReturn(dto);
@@ -143,6 +145,7 @@ class TeamControllerTest {
     @Test
     void moveMember_callsService() throws Exception {
         MoveMemberRequest request = new MoveMemberRequest(
+                UUID.randomUUID(),
                 123L,
                 UUID.randomUUID()
         );

@@ -1,17 +1,21 @@
 package com.example.hackathonbe.team.service;
 
 import com.example.hackathonbe.hackathon.model.Hackathon;
+import com.example.hackathonbe.participant.dto.ParticipantDto;
 import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.hackathon.model.QuestionnaireAnswer;
 import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.example.hackathonbe.hackathon.repository.QuestionnaireAnswerRepository;
+import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.example.hackathonbe.team.dto.TeamDTO;
+import com.example.hackathonbe.team.dto.TeamMemberDTO;
 import com.example.hackathonbe.team.model.Team;
 import com.example.hackathonbe.team.model.TeamMember;
 import com.example.hackathonbe.team.repository.TeamMemberRepository;
 import com.example.hackathonbe.team.repository.TeamRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.hackathonbe.team.dto.TeamEditRequests.*;
@@ -21,12 +25,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final HackathonRepository hackathonRepository;
     private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
+    private final ParticipantRepository participantRepository;
 
     @Transactional
     public UUID generateTeams(Integer requestedTeamSize, Long hackathonId) {
@@ -172,19 +178,44 @@ public class TeamService {
 
 
     @Transactional(readOnly = true)
-    public List<TeamDTO> getTeams(UUID generationId) {
-        List<Team> teams = (generationId == null)
-                ? teamRepository.findAll()
-                : teamRepository.findByGenerationIdOrderByScoreDesc(generationId);
+    public List<TeamDTO> getTeams(Long hackathonId) {
+        List<Team> teams = teamRepository.findByHackathonIdOrderByNameAsc(hackathonId);
 
+        // Collect all participantIds used in team members for this hackathon
+        Set<Long> participantIds = teams.stream()
+                .flatMap(team -> {
+                    List<TeamMember> members = team.getMembers() != null
+                            ? team.getMembers()
+                            : List.of();
+                    return members.stream();
+                })
+                .map(TeamMember::getParticipantId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // Bulk fetch Participants to avoid N+1
+        Map<Long, ParticipantDto> participantsById = participantRepository.findAllById(participantIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        Participant::getId,
+                        ParticipantDto::new   // assumes ParticipantDto(Participant) constructor
+                ));
+
+        // Build TeamDTOs with TeamMemberDTOs
         return teams.stream()
                 .map(team -> {
-                    // if members is null, fall back to empty list
                     List<TeamMember> members = team.getMembers() != null
                             ? team.getMembers()
                             : List.of();
 
-                    return new TeamDTO(team, members);
+                    List<TeamMemberDTO> memberDtos = members.stream()
+                            .map(m -> {
+                                ParticipantDto p = participantsById.get(m.getParticipantId());
+                                return new TeamMemberDTO(m, p);
+                            })
+                            .toList();
+
+                    return new TeamDTO(team, memberDtos);
                 })
                 .toList();
     }
@@ -203,9 +234,9 @@ public class TeamService {
         team.setName(newName);
         Team saved = teamRepository.save(team);
 
-        List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
-        return new TeamDTO(saved, members);
+        return toTeamDTO(saved);
     }
+
 
     @Transactional
     public TeamDTO addMembers(UUID teamId, AddMembersRequest request) {
@@ -215,10 +246,14 @@ public class TeamService {
         UUID generationId = team.getGenerationId();
         List<Long> participantIds = request.participantIds();
 
-        // If nothing to add, just return current members from the association
+        // If nothing to add, just return current DTO
         if (participantIds == null || participantIds.isEmpty()) {
-            List<TeamMember> members = team.getMembers() != null ? team.getMembers() : List.of();
-            return new TeamDTO(team, members);
+            return toTeamDTO(team);
+        }
+
+        // Make sure members collection is initialized
+        if (team.getMembers() == null) {
+            team.setMembers(new ArrayList<>());
         }
 
         for (Long participantId : participantIds) {
@@ -228,28 +263,25 @@ public class TeamService {
 
             // Ensure participant not already in some team in this generation
             if (teamMemberRepository.existsByGenerationIdAndParticipantId(generationId, participantId)) {
-                // You can choose to skip instead of throw, if you prefer.
                 throw new IllegalStateException(
                         "Participant " + participantId + " is already in a team for this generation"
                 );
             }
 
             TeamMember tm = new TeamMember();
-            tm.setTeam(team);                 // 👈 use entity, not ID
+            tm.setTeam(team);
             tm.setGenerationId(generationId);
             tm.setParticipantId(participantId);
-            // snapshot fields can stay null for manual additions, or you can fill them here
+            // snapshot fields can stay null or you can fill them from Participant if you want
 
-            // Attach to the team so cascade persists it
             team.getMembers().add(tm);
         }
 
-        // Cascade from Team -> TeamMember will save new members
         teamRepository.save(team);
 
-        List<TeamMember> updatedMembers = team.getMembers() != null ? team.getMembers() : List.of();
-        return new TeamDTO(team, updatedMembers);
+        return toTeamDTO(team);   // ✅ mapped with participants
     }
+
 
 
     @Transactional
@@ -257,7 +289,12 @@ public class TeamService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found: " + teamId));
 
-        // Find membership from the in-memory collection
+        if (team.getMembers() == null) {
+            throw new IllegalArgumentException(
+                    "Participant " + participantId + " is not in team " + teamId
+            );
+        }
+
         TeamMember toRemove = team.getMembers().stream()
                 .filter(m -> Objects.equals(m.getParticipantId(), participantId))
                 .findFirst()
@@ -265,67 +302,81 @@ public class TeamService {
                         "Participant " + participantId + " is not in team " + teamId
                 ));
 
-        // Remove from the collection
-        team.getMembers().remove(toRemove);
-
+        team.getMembers().remove(toRemove); // orphanRemoval will delete row
         teamRepository.save(team);
 
-        List<TeamMember> remaining = team.getMembers() != null ? team.getMembers() : List.of();
-        return new TeamDTO(team, remaining);
+        return toTeamDTO(team);   // ✅ TeamDTO with fresh members + participants
     }
+
 
 
     @Transactional
     public void moveMember(MoveMemberRequest request) {
+        UUID fromTeamId = request.fromTeamId();
+        UUID targetTeamId = request.toTeamId();
         Long participantId = request.participantId();
-        UUID targetTeamId = request.targetTeamId();
+
+        if (fromTeamId.equals(targetTeamId)) {
+            // Nothing to do
+            return;
+        }
 
         Team targetTeam = teamRepository.findById(targetTeamId)
                 .orElseThrow(() -> new IllegalArgumentException("Target team not found: " + targetTeamId));
 
         UUID generationId = targetTeam.getGenerationId();
 
-        // Find any existing membership for this participant in the same generation
-        Optional<TeamMember> existingOpt =
-                teamMemberRepository.findByGenerationIdAndParticipantId(generationId, participantId);
+        // Find membership in this generation
+        TeamMember teamMember = teamMemberRepository
+                .findByGenerationIdAndParticipantId(generationId, participantId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Participant " + participantId + " is not in any team for generation " + generationId
+                ));
 
-        if (existingOpt.isPresent()) {
-            TeamMember existing = existingOpt.get();
-            Team currentTeam = existing.getTeam();
-
-            // Already in target team – nothing to do
-            if (currentTeam != null && targetTeamId.equals(currentTeam.getId())) {
-                return;
-            }
-
-            // Keep both sides of the association in sync
-            if (currentTeam != null && currentTeam.getMembers() != null) {
-                currentTeam.getMembers().remove(existing);
-            }
-
-            existing.setTeam(targetTeam);
-            existing.setGenerationId(generationId);
-
-            if (targetTeam.getMembers() != null) {
-                targetTeam.getMembers().add(existing);
-            }
-
-            // Dirty-checking would be enough, but this is explicit
-            teamMemberRepository.save(existing);
-
-        } else {
-            // Not in any team for this generation: add new membership
-            TeamMember tm = new TeamMember();
-            tm.setTeam(targetTeam);
-            tm.setGenerationId(generationId);
-            tm.setParticipantId(participantId);
-
-            if (targetTeam.getMembers() != null) {
-                targetTeam.getMembers().add(tm);
-            }
-
-            teamMemberRepository.save(tm);
+        Team originTeam = teamMember.getTeam();
+        if (!originTeam.getId().equals(fromTeamId)) {
+            throw new IllegalArgumentException(
+                    "Participant " + participantId + " is not in team " + fromTeamId
+            );
         }
+
+        // ✅ Only update owning side; do NOT touch collections
+        teamMember.setTeam(targetTeam);
+        teamMemberRepository.save(teamMember);
+
+        // 🔁 Recompute scores from fresh membership
+        recalcScoreForTeam(originTeam.getId());
+        recalcScoreForTeam(targetTeam.getId());
+    }
+
+    private TeamDTO toTeamDTO(Team team) {
+        // 1) Load members for this team
+        List<TeamMember> members = teamMemberRepository.findByTeamId(team.getId());
+
+        // 2) Collect participant IDs
+        Set<Long> participantIds = members.stream()
+                .map(TeamMember::getParticipantId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 3) Bulk-load participants and map to DTOs
+        Map<Long, ParticipantDto> participantsById = participantRepository.findAllById(participantIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        Participant::getId,
+                        ParticipantDto::new      // assumes ParticipantDto(Participant) ctor
+                ));
+
+        // 4) Build member DTOs
+        List<TeamMemberDTO> memberDtos = members.stream()
+                .map(m -> {
+                    ParticipantDto p = participantsById.get(m.getParticipantId());
+                    return new TeamMemberDTO(m, p);
+                })
+                .toList();
+
+        // 5) Finally wrap into TeamDTO
+        return new TeamDTO(team, memberDtos);
     }
 
     public void deleteTeam(UUID teamId) {
@@ -358,8 +409,33 @@ public class TeamService {
             candidate.motivation = asNonNegativeInt(data.path("motivation").asInt());
             candidate.yearsExperience = asNonNegativeInt(data.path("years_experience").asInt());
 
+            JsonNode skillsNode = data.path("skills");
             Set<String> skillSet = new HashSet<>();
-            String skillsRaw = data.path("skills").asText("");
+
+            if (skillsNode.isArray()) {
+                for (JsonNode n : skillsNode) {
+                    String s = n.asText("").trim();
+                    if (!s.isEmpty()) skillSet.add(s);
+                }
+            } else {
+                // fallback for comma-separated string (legacy or malformed)
+                String skillsRaw = skillsNode.asText("");
+                for (String raw : skillsRaw.split("[,;]")) {
+                    String s = raw.trim();
+                    if (!s.isEmpty()) skillSet.add(s);
+                }
+            }
+            candidate.skills = skillSet;
+
+            return candidate;
+        }
+        static Candidate fromTeamMember(TeamMember member) {
+            Candidate candidate = new Candidate();
+            candidate.participantId = member.getParticipantId();
+            candidate.role = safeLower(member.getRoleSnapshot());
+
+            Set<String> skillSet = new HashSet<>();
+            String skillsRaw = Optional.ofNullable(member.getSkillsSnapshot()).orElse("");
             for (String rawSkill : skillsRaw.split("[,;]")) {
                 String normalizedSkill = rawSkill.trim().toLowerCase();
                 if (!normalizedSkill.isEmpty()) {
@@ -368,6 +444,8 @@ public class TeamService {
             }
             candidate.skills = skillSet;
 
+            candidate.motivation = asNonNegativeInt(member.getMotivationSnapshot());
+            candidate.yearsExperience = asNonNegativeInt(member.getYearsExperienceSnapshot());
             return candidate;
         }
 
@@ -472,4 +550,23 @@ public class TeamService {
         int union = a.size() + b.size() - intersection;
         return union == 0 ? 0.0 : (double) intersection / union;
     }
+
+    private void recalcScoreForTeam(UUID teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found: " + teamId));
+
+        List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
+
+        TeamBuild build = new TeamBuild(team.getName());
+
+        for (TeamMember tm : members) {
+            Candidate c = Candidate.fromTeamMember(tm); // the helper we added earlier
+            build.addMember(c);
+        }
+
+        build.recomputeScore();
+        team.setScore(build.score);
+        teamRepository.save(team);
+    }
+
 }
