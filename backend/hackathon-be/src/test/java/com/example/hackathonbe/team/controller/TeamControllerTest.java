@@ -58,7 +58,7 @@ class TeamControllerTest {
                 10.0,
                 generationId,
                 OffsetDateTime.now(),
-                List.of(new TeamMemberDTO(new ParticipantDto(10L, "john@example.com", "John", "Doe"), "Dev", "Java", 5, 3))
+                List.of(new TeamMemberDTO(new ParticipantDto(10L,  "John", "Doe", "john@example.com"), "Dev", "Java", 5, 3))
         );
 
         when(teamService.getTeams(hackathonId)).thenReturn(List.of(dto));
@@ -86,7 +86,7 @@ class TeamControllerTest {
 
         when(teamService.renameTeam(eq(teamId), any())).thenReturn(dto);
 
-        mockMvc.perform(patch("/api/teams/{teamId}", teamId)
+        mockMvc.perform(patch("/api/3/teams/{teamId}", teamId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -106,16 +106,16 @@ class TeamControllerTest {
                 10.0,
                 UUID.randomUUID(),
                 OffsetDateTime.now(),
-                List.of(new TeamMemberDTO(new ParticipantDto(10L, "john@example.com", "John", "Doe"), "Dev", "Java", 5, 3))
+                List.of(new TeamMemberDTO(new ParticipantDto(10L,  "John", "Doe", "john@example.com"), "Dev", "Java", 5, 3))
         );
 
         when(teamService.addMembers(eq(teamId), any())).thenReturn(dto);
 
-        mockMvc.perform(post("/api/teams/{teamId}/members", teamId)
+        mockMvc.perform(post("/api/3/teams/{teamId}/members", teamId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.members[0].participantId").value(1L));
+                .andExpect(jsonPath("$.members[0].participant.id").value(10L));
 
         verify(teamService).addMembers(eq(teamId), any(AddMembersRequest.class));
     }
@@ -136,7 +136,7 @@ class TeamControllerTest {
 
         when(teamService.removeMember(teamId, participantId)).thenReturn(dto);
 
-        mockMvc.perform(delete("/api/teams/{teamId}/members/{participantId}", teamId, participantId))
+        mockMvc.perform(delete("/api/3/teams/{teamId}/members/{participantId}", teamId, participantId))
                 .andExpect(status().isOk());
 
         verify(teamService).removeMember(teamId, participantId);
@@ -150,7 +150,7 @@ class TeamControllerTest {
                 UUID.randomUUID()
         );
 
-        mockMvc.perform(post("/api/teams/move-member")
+        mockMvc.perform(post("/api/3/teams/move-member")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
