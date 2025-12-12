@@ -50,22 +50,22 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 🔹 Frontend origins that are allowed to call your backend
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",          // Vite dev
-                "http://localhost:4173",          // Vite preview (optional)
-                "https://api.ultimatehackathon.eu"   // TODO: replace with real prod URL
+        // Allow exact prod origins + wildcard subdomains
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:5173",
+                "http://localhost:4173",
+                "https://ultimatehackathon.eu",
+                "https://www.ultimatehackathon.eu",
+                "https://*.ultimatehackathon.eu"
         ));
 
-        // 🔹 Methods & headers you allow
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "Authorization"));
-
-        // 🔹 Required for cookie-based auth (credentials: 'include')
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 }
