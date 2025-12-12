@@ -16,7 +16,7 @@ export default function HackathonsPage() {
 
     const navigate = useNavigate()
 
-    const handleOpenHackathon = (hackathonId: string) => {
+    const handleOpenHackathon = (hackathonId: number) => {
         const selected = hackathons.find(h => h.id === hackathonId)
         if (!selected) return
 
