@@ -17,6 +17,7 @@ cypress/videos
 cypress/screenshots
 cypress/downloads
 cypress/results
+package-lock.json
 
 # Editor directories and files
 .vscode/*
