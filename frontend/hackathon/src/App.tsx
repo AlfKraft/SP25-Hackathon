@@ -9,6 +9,8 @@ import HackathonsPage from "@/pages/HackathonsPage.tsx";
 import RegisterPage from "@/pages/RegisterPage.tsx";
 import AdminHackathonsPage from "@/pages/AdminHackathonsPage.tsx";
 import HackathonAdminDashboard from "@/pages/HackathonAdminDashboard.tsx";
+import HackathonQuestionnaireAdminPage from "@/pages/HackathonQuestionnaireAdminPage.tsx";
+import HackathonTeamsPage from "@/pages/HackathonTeamsPage.tsx";
 
 function App() {
     return (
