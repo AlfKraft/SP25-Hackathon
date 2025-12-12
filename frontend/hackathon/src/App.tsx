@@ -2,13 +2,13 @@ import { Routes, Route } from 'react-router-dom'
 import { HackathonProvider } from './contexts/HackathonContext'
 import Navbar from './components/layout/Navbar'
 import ParticipantsPage from './pages/ParticipantsPage'
+import TeambuilderPage from './pages/TeambuilderPage'
 import AuthPage from './pages/AuthPage'
 import {AuthProvider} from "@/contexts/AuthContext.tsx";
 import HackathonsPage from "@/pages/HackathonsPage.tsx";
 import RegisterPage from "@/pages/RegisterPage.tsx";
 import AdminHackathonsPage from "@/pages/AdminHackathonsPage.tsx";
 import HackathonAdminDashboard from "@/pages/HackathonAdminDashboard.tsx";
-import HackathonTeamsPage from "@/pages/HackathonTeamsPage.tsx";
 
 function App() {
     return (
@@ -26,12 +26,14 @@ function App() {
                             <Route path="/login" element={<AuthPage />} />
                             <Route path="/register" element={<RegisterPage/>}/>
                             <Route path="/admin/hackathons/:id" element={<HackathonAdminDashboard />} />
+                            <Route path={"/admin/hackathons/:id/questionnaire"} element={<HackathonQuestionnaireAdminPage/>} />
                             <Route
                                 path="/admin/hackathons/:id/teams"
                                 element={<HackathonTeamsPage />}
                             />
                             {/* Protected-ish views (you can guard them later) */}
                             <Route path="/admin/hackathons/:id/participants" element={<ParticipantsPage />} />
+                            <Route path="/team-builder" element={<TeambuilderPage />} />
                         </Routes>
                     </main>
                 </div>
