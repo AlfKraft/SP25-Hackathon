@@ -52,8 +52,8 @@ export default function HackathonTeamsPage() {
 
     // Compiled (already saved) teams
     const [compiledTeams, setCompiledTeams] = useState<Team[]>([])
-    const [compiledLoading, setCompiledLoading] = useState(false)
-    const [compiledError, setCompiledError] = useState<string | null>(null)
+    const [, setCompiledLoading] = useState(false)
+    const [, setCompiledError] = useState<string | null>(null)
 
     // If route is wrong, complain loudly instead of silently breaking the button
     if (!rawHackathonId) {
