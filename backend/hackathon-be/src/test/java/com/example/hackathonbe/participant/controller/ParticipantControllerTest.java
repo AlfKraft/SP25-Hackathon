@@ -47,9 +47,9 @@ class ParticipantControllerTest {
     void getAllParticipants_returnsListOfDtos() throws Exception {
         Long hackathonId = 1L;
 
-        ParticipantDto dto1 = new ParticipantDto(10L, "john@example.com", "John", "Doe");
+        ParticipantDto dto1 = new ParticipantDto(10L , "John", "Doe", "john@example.com");
 
-        ParticipantDto dto2 = new ParticipantDto(11L, "jane@example.com", "Jane", "Smith");
+        ParticipantDto dto2 = new ParticipantDto(11L, "Jane", "Smith", "jane@example.com");
 
         when(participantService.getAllParticipants(hackathonId))
                 .thenReturn(List.of(dto1, dto2));
