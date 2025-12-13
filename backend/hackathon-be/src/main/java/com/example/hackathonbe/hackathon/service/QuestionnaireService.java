@@ -1,5 +1,7 @@
 package com.example.hackathonbe.hackathon.service;
 
+import com.example.hackathonbe.hackathon.dto.PublishDto;
+import com.example.hackathonbe.hackathon.dto.QuestionnaireDto;
 import com.example.hackathonbe.hackathon.dto.SubmitQuestionnaireAnswersDto;
 import com.example.hackathonbe.hackathon.model.*;
 import com.example.hackathonbe.hackathon.repository.HackathonRepository;
@@ -38,20 +40,30 @@ public class QuestionnaireService {
      * Used by your own questionnaire builder.
      */
     @Transactional
-    public Questionnaire saveInternalQuestionnaire(Long hackathonId, JsonNode questionsJson) {
+    public QuestionnaireDto saveInternalQuestionnaire(Long hackathonId, JsonNode questionsJson) {
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + hackathonId));
+        Questionnaire questionnaire;
 
+        if (hackathon.getQuestionnaire() != null && hackathon.getQuestionnaire().getSource() == QuestionnaireSource.EXTERNAL_UPLOAD) {
+            throw new IllegalStateException("External questionnaire already exists for hackathon: " + hackathonId + " (Questionnaire: " + hackathon.getQuestionnaire().getId() + " from: " + hackathon.getQuestionnaire().getSource() + ")");
+        }
+        if (hackathon.getQuestionnaire() != null && hackathon.getQuestionnaire().getSource() == QuestionnaireSource.INTERNAL) {
+            questionnaire = hackathon.getQuestionnaire();
+        }
+        else{
+            questionnaire = new Questionnaire();
+            questionnaire.setSource(QuestionnaireSource.INTERNAL);
+
+        }
         //validateRequiredQuestions(questionsJson);
-
-        Questionnaire questionnaire = new Questionnaire();
-        questionnaire.setSource(QuestionnaireSource.INTERNAL);
         questionnaire.setStatus(QuestionnaireStatus.DRAFT);
         questionnaire.setQuestions(questionsJson);
         hackathon.setQuestionnaire(questionnaire);
         hackathonRepository.save(hackathon);
 
-        return hackathon.getQuestionnaire();
+        Boolean isLocked = questionnaire.getStatus() == QuestionnaireStatus.LOCKED;
+        return new QuestionnaireDto(questionnaire.getId(), hackathon.getId(), questionnaire.getSource(), isLocked, questionnaire.getStatus(), hackathon.getQuestionnaire().getQuestions().get("questions"));
     }
 
     /**
@@ -84,26 +96,36 @@ public class QuestionnaireService {
      * Get questionnaire JSON for a hackathon.
      */
     @Transactional(readOnly = true)
-    public JsonNode getQuestionsForHackathon(Long hackathonId) {
+    public QuestionnaireDto getQuestionsForHackathon(Long hackathonId) {
 
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + hackathonId));
-        return hackathon.getQuestionnaire().getQuestions();
+
+        Boolean isLocked = hackathon.getQuestionnaire().getStatus() == QuestionnaireStatus.LOCKED;
+        return new QuestionnaireDto(hackathon.getQuestionnaire().getId(), hackathonId, hackathon.getQuestionnaire().getSource(), isLocked, hackathon.getQuestionnaire().getStatus(), hackathon.getQuestionnaire().getQuestions().get("questions"));
     }
 
     @Transactional
-    public Questionnaire publishInternalQuestionnaire(Long hackathonId) {
+    public PublishDto publishInternalQuestionnaire(Long hackathonId) {
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + hackathonId));
         Questionnaire q = hackathon.getQuestionnaire();
-        if (q.getSource() != QuestionnaireSource.INTERNAL) {
+        if (!q.getSource().equals(QuestionnaireSource.INTERNAL)) {
             throw new IllegalStateException("Only INTERNAL questionnaires can be published");
         }
+        if (q.getStatus().equals(QuestionnaireStatus.PUBLISHED)) {
+            q.setStatus(QuestionnaireStatus.DRAFT);
+        }
+        else if (q.getStatus().equals(QuestionnaireStatus.DRAFT)) {
+            q.setStatus(QuestionnaireStatus.PUBLISHED);
+        }
+        else{
+            throw new IllegalStateException("Questionnaire is not in a valid state for publishing: " + q.getStatus());
+        }
 
-        validateRequiredQuestions(q.getQuestions());
+        questionnaireRepository.save(q);
 
-        q.setStatus(QuestionnaireStatus.PUBLISHED);
-        return questionnaireRepository.save(q);
+        return new PublishDto(q.getId(), q.getStatus());
     }
 
     @Transactional(readOnly = true)

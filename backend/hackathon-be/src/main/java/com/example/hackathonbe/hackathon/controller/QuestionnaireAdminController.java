@@ -1,5 +1,7 @@
 package com.example.hackathonbe.hackathon.controller;
 
+import com.example.hackathonbe.hackathon.dto.PublishDto;
+import com.example.hackathonbe.hackathon.dto.QuestionnaireDto;
 import com.example.hackathonbe.hackathon.model.Questionnaire;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,12 +21,11 @@ public class QuestionnaireAdminController {
      * Called from your own questionnaire builder UI.
      */
     @PutMapping("/internal")
-    public ResponseEntity<JsonNode> saveInternal(
+    public ResponseEntity<QuestionnaireDto> saveInternal(
             @PathVariable Long hackathonId,
             @RequestBody JsonNode questionsJson
     ) {
-        Questionnaire q = questionnaireService.saveInternalQuestionnaire(hackathonId, questionsJson);
-        return ResponseEntity.ok(q.getQuestions());
+        return ResponseEntity.ok(questionnaireService.saveInternalQuestionnaire(hackathonId, questionsJson));
     }
 
     /**
@@ -32,18 +33,16 @@ public class QuestionnaireAdminController {
      * After publishing you can treat structure as immutable.
      */
     @PostMapping("/publish")
-    public ResponseEntity<Void> publishInternal(@PathVariable Long hackathonId) {
-        questionnaireService.publishInternalQuestionnaire(hackathonId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<PublishDto> publishInternal(@PathVariable Long hackathonId) {
+        return ResponseEntity.ok(questionnaireService.publishInternalQuestionnaire(hackathonId));
     }
 
     /**
      * Get the current questionnaire JSON for this hackathon (admin view).
      */
     @GetMapping
-    public ResponseEntity<JsonNode> getForHackathon(@PathVariable Long hackathonId) {
-        JsonNode json = questionnaireService.getQuestionsForHackathon(hackathonId);
-        return ResponseEntity.ok(json);
+    public ResponseEntity<QuestionnaireDto> getForHackathon(@PathVariable Long hackathonId) {
+        return ResponseEntity.ok(questionnaireService.getQuestionsForHackathon(hackathonId));
     }
 
     @PostMapping("/edit/{questionnaireId}")

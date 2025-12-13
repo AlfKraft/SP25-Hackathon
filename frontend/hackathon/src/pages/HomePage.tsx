@@ -1,140 +1,182 @@
+// src/pages/HackathonsPage.tsx
+import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useHackathon } from '@/contexts/HackathonContext'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
-import CSVUploadPopup from '@/components/features/CSVUploadPopup'
-import { toast } from 'sonner'
-import {API_URL} from "@/lib/config.ts";
-export default function HomePage() {
-  const { currentHackathon, replaceCurrentHackathonParticipants } = useHackathon();
-  const [showCSVPopup, setShowCSVPopup] = useState(false);
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Calendar, Users, MapPin, ClipboardCheck } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-  const handleUploadParticipants = () => {
-    setShowCSVPopup(true);
-  }
+export default function HackathonsPage() {
+    const { hackathons, currentHackathon, setCurrentHackathon, loading, error } = useHackathon()
+    const navigate = useNavigate()
 
-  const handleCSVUploadComplete = async (previewId: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/upload/import`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          batchPreviewId: previewId
-        }),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      console.log(data, "data")
+    const openHackathons = useMemo(() => {
+        // If your backend already filters to OPEN, keep as-is.
+        // Otherwise you can filter here (depends on your status naming).
+        return hackathons
+    }, [hackathons])
 
-      const participantsResp = await fetch(`${API_URL}/api/participants/all`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      })
+    const handleSignUp = (hackathonId: number) => {
+        const selected = hackathons.find(h => h.id === hackathonId)
+        if (!selected) return
 
-      if (!participantsResp.ok) {
-        throw new Error(`Failed to fetch participants. status: ${participantsResp.status}`)
-      }
+        setCurrentHackathon?.(selected)
 
-      const participantsDto = await participantsResp.json()
-      const mappedParticipants = (participantsDto || []).map((p: any) => {
-        const data = p.data || {}
-        
-        const skills = Array.isArray(data.skills) 
-          ? data.skills.map((s: any) => String(s))
-          : []
-        
-        return {
-          id: String(p.id),
-          name: [p.firstName, p.lastName].filter(Boolean).join(' ').trim() || p.email,
-          email: p.email,
-          motivation: data.motivation ?? 0,
-          skills,
-          idea: false,
-          ideaName: data.ideaName ?? '',
-          fieldOfInterest: data.field_of_interest ?? '',
-          role: data.role ?? '',
-          age: data.age ?? 0,
-          gender: data.gender ?? '',
-          education: data.education ?? '',
-          yearsExperience: data.years_experience ?? 0,
-          hasTeam: data.hasTeam === 'Yes' || data.hasTeam === 'true',
-          problem: data.problem ?? false
+        const hasOnsiteQuestionnaire =
+            (selected as any).hasOnsiteQuestionnaire || (selected as any).onsiteQuestionnaire
+
+        if (hasOnsiteQuestionnaire) {
+            navigate(`/questionnaire?hackathonId=${hackathonId}`)
+        } else {
+            navigate(`/hackathons/${hackathonId}`)
         }
-      })
-
-      replaceCurrentHackathonParticipants(mappedParticipants)
-      toast.success('Participants imported successfully')
-    } catch (error) {
-      console.error('Error importing participants:', error)
-      toast.error('Failed to import participants. Please try again.')
-    } finally {
-      setShowCSVPopup(false)
     }
-  }
 
-  return (
-    <div className="space-y-6">
-      {currentHackathon && ( 
-        <div className="bg-card border rounded-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4">Current Hackathon: {currentHackathon.name}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Hackathon Details</h3>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Description:</span> {currentHackathon.description}</p>
-                <p><span className="font-medium">Theme:</span> {currentHackathon.theme}</p>
-                <p><span className="font-medium">Location:</span> {currentHackathon.location}</p>
-                <p><span className="font-medium">Start Date:</span> {currentHackathon.startDate.toLocaleDateString()}</p>
-                <p><span className="font-medium">End Date:</span> {currentHackathon.endDate.toLocaleDateString()}</p>
-                <p><span className="font-medium">Status:</span> 
-                  <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                    currentHackathon.status === 'upcoming' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                    currentHackathon.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                  }`}>
-                    {currentHackathon.status}
-                  </span>
-                </p>
-              </div>
+    const formatDateRange = (start?: any, end?: any) => {
+        // Your Hackathon type might be Date or string depending on backend mapping.
+        const s = start ? new Date(start).toLocaleString() : 'TBA'
+        const e = end ? new Date(end).toLocaleString() : 'TBA'
+        return `${s} → ${e}`
+    }
+
+    if (loading) {
+        return (
+            <div className="w-full flex justify-center py-16">
+                <p className="text-slate-300 text-sm">Loading hackathons…</p>
             </div>
-            
-            {currentHackathon.participants.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-2 gap-y-4">
-                <h3 className="text-lg font-medium mb-2">No participants yet</h3>
-                <p className="text-muted-foreground">
-                  There are no participants yet for this hackathon.
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="w-full flex flex-col items-center py-16">
+                <p className="text-red-400 text-sm mb-2">Failed to load hackathons</p>
+                <p className="text-slate-400 text-xs">{error}</p>
+            </div>
+        )
+    }
+
+    if (openHackathons.length === 0) {
+        return (
+            <div className="w-full flex flex-col items-center py-16">
+                <h1 className="text-3xl font-bold mb-2">Hackathons</h1>
+                <p className="text-slate-300 mb-4">There are no open hackathons at the moment.</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-4xl font-bold mb-2">Open hackathons</h1>
+                <p className="text-lg text-muted-foreground">
+                    Choose a hackathon and sign up to participate.
                 </p>
-                <Button onClick={handleUploadParticipants}>
-                  Click here to upload participants
-                </Button>
-              </div>
-            )}
-          </div>
-          
-        </div>
-      )}
+            </div>
 
-      {!currentHackathon && (
-        <div className="bg-card border rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold mb-2">No Hackathon Selected</h2>
-          <p className="text-muted-foreground">
-            Use the dropdown in the navigation to select a hackathon or create a new Hackathon.
-          </p>
-        </div>
-      )}
+            <div className="grid gap-4 md:grid-cols-2">
+                {openHackathons.map(h => {
+                    const hasOnsiteQuestionnaire =
+                        (h as any).hasOnsiteQuestionnaire || (h as any).onsiteQuestionnaire
 
-      {showCSVPopup && (
-        <CSVUploadPopup 
-          onClose={() => setShowCSVPopup(false)}
-          onUploadComplete={handleCSVUploadComplete}
-        />
-      )}
-    </div>
-  )
+                    const isSelected = currentHackathon?.id === h.id
+
+                    const participantsCount = Array.isArray((h as any).participants)
+                        ? (h as any).participants.length
+                        : undefined
+
+                    return (
+                        <Card
+                            key={h.id}
+                            className={cn(
+                                // Admin card vibe
+                                'group flex flex-col border border-sky-500/10 bg-slate-900/60',
+                                'shadow-[0_18px_45px_rgba(15,23,42,0.9)] backdrop-blur-xl transition-all',
+                                'hover:-translate-y-1 hover:border-sky-400/60 hover:shadow-[0_24px_70px_rgba(8,47,73,0.9)]',
+                                // Selected ring (like your old page, but more subtle)
+                                isSelected && 'ring-2 ring-sky-500/70'
+                            )}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="truncate text-base font-semibold text-sky-50">{h.name}</span>
+
+                                            {h.status && (
+                                                <span className="rounded-full border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-100">
+                          {String(h.status)}
+                        </span>
+                                            )}
+
+                                            {hasOnsiteQuestionnaire && (
+                                                <span className="hidden sm:inline-flex rounded-full border border-indigo-400/50 bg-indigo-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-100">
+                          Questionnaire
+                        </span>
+                                            )}
+                                        </div>
+
+                                        <p className="mt-1 line-clamp-2 text-xs text-sky-100/70">
+                                            {h.description || '—'}
+                                        </p>
+                                    </div>
+                                </CardTitle>
+                            </CardHeader>
+
+                            <CardContent className="flex-1 space-y-2 text-xs text-sky-100/80">
+                                <p className="flex items-center gap-2">
+                                    <MapPin className="h-3.5 w-3.5 text-sky-200/70" />
+                                    <span className="font-medium text-sky-50">Location:</span>
+                                    <span className="truncate">{h.location || 'TBA'}</span>
+                                </p>
+
+                                <p className="flex items-center gap-2">
+                                    <Calendar className="h-3.5 w-3.5 text-sky-200/70" />
+                                    <span className="font-medium text-sky-50">Dates:</span>
+                                    <span className="truncate">{formatDateRange((h as any).startDate, (h as any).endDate)}</span>
+                                </p>
+
+                                {typeof participantsCount === 'number' && (
+                                    <p className="flex items-center gap-2">
+                                        <Users className="h-3.5 w-3.5 text-sky-200/70" />
+                                        <span className="font-medium text-sky-50">Participants:</span>
+                                        <span>
+                      {participantsCount}
+                                            {(h as any).maxParticipants ? ` / ${(h as any).maxParticipants}` : ''}
+                    </span>
+                                    </p>
+                                )}
+                            </CardContent>
+
+                            <CardFooter className="flex items-center justify-between gap-3 pt-3">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn(
+                                        'flex flex-1 items-center justify-center gap-2 rounded-full',
+                                        'border-sky-500/50 bg-slate-900/60 text-sky-100',
+                                        'hover:bg-slate-800/80 hover:text-sky-50'
+                                    )}
+                                    onClick={() => handleSignUp(h.id)}
+                                >
+                                    {hasOnsiteQuestionnaire ? (
+                                        <>
+                                            <ClipboardCheck className="h-4 w-4" />
+                                            Fill questionnaire
+                                        </>
+                                    ) : (
+                                        'View details'
+                                    )}
+                                </Button>
+                            </CardFooter>
+
+                            {/* little glow line like admin cards */}
+                            <div className="pointer-events-none mx-4 mb-3 h-px bg-gradient-to-r from-transparent via-sky-400/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        </Card>
+                    )
+                })}
+            </div>
+        </div>
+    )
 }

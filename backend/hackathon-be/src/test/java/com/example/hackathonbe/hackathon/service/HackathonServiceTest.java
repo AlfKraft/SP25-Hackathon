@@ -91,7 +91,7 @@ class HackathonServiceTest {
     @Test
     void getHackathonById_whenNotOpen_throwsIllegalArgumentException() {
         // given
-        Hackathon entity = createHackathon(5L, "Closed Hack", HackathonStatus.CLOSED);
+        Hackathon entity = createHackathon(5L, "Closed Hack", HackathonStatus.ARCHIVED);
         when(repository.findById(5L)).thenReturn(Optional.of(entity));
 
         // expect

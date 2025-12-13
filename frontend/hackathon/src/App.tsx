@@ -13,6 +13,7 @@ import HackathonQuestionnaireAdminPage from "@/pages/HackathonQuestionnaireAdmin
 import HackathonTeamsPage from "@/pages/HackathonTeamsPage.tsx";
 import HackathonEditPage from "@/pages/HackathonEditPage.tsx";
 import HackathonDetailsPage from "@/pages/HackathonDetailsPage.tsx";
+import HackathonQuestionnairePage from "@/pages/HackathonQuestionnairePage.tsx";
 
 function App() {
     return (
@@ -35,6 +36,7 @@ function App() {
                                 path="/admin/hackathons/:id/teams"
                                 element={<HackathonTeamsPage />}
                             />
+                            <Route path="/hackathons/:hackathonId/questionnaire" element={<HackathonQuestionnairePage />} />
                             <Route path="/admin/hackathons/:id/edit" element={<HackathonEditPage />} />
                             <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
 
