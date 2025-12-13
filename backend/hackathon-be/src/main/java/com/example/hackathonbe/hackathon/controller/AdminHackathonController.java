@@ -2,6 +2,7 @@ package com.example.hackathonbe.hackathon.controller;
 
 import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
 import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
+import com.example.hackathonbe.hackathon.dto.OverViewDto;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.service.AdminHackathonService;
 import com.example.hackathonbe.hackathon.dto.HackathonAdminResponse;
@@ -62,6 +63,12 @@ public class AdminHackathonController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         hackathonService.deleteById(id);
+    }
+
+    @GetMapping("/{hackathonId}/overview")
+    public ResponseEntity<OverViewDto> getOverView(@PathVariable Long hackathonId) {
+        OverViewDto overViewDto = hackathonService.getOverView(hackathonId);
+        return ResponseEntity.ok(overViewDto);
     }
 }
 

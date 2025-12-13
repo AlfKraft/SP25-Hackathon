@@ -123,18 +123,19 @@ export function HackathonProvider({ children }: Props) {
             const data: Hackathon[] = await res.json()
             setHackathons(data)
 
-            // If currentHackathon is not set or no longer exists, reset
-            if (currentHackathon) {
-                const stillExists = data.find(h => h.id === currentHackathon.id) || null
-                setCurrentHackathon(stillExists)
-            }
+            // Use functional update so we don't depend on currentHackathon in the hook
+            setCurrentHackathon(prev => {
+                if (!prev) return null
+                const stillExists = data.find(h => h.id === prev.id) || null
+                return stillExists
+            })
         } catch (e: any) {
             console.error('Error loading hackathons', e)
             setError(e?.message ?? 'Failed to load hackathons')
         } finally {
             setLoading(false)
         }
-    }, [currentHackathon])
+    }, [])
 
     useEffect(() => {
         void refreshHackathons()
