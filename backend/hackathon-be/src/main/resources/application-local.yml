@@ -1,0 +1,32 @@
+server:
+  port: 8081
+app:
+  jwt:
+    # For our current JwtService using Decoders.BASE64:
+    # This MUST be a Base64-encoded string, at least 32 bytes when decoded.
+    secret: "ZmFrZS1sb25nLXN1cGVyLXNlY3JldC1rZXktMTIzNDU2Nzg5MDEyMzQ1Ng=="
+    expirationMillis: 86400000
+spring:
+  docker:
+    compose:
+      enabled: false
+  datasource:
+    url: jdbc:postgresql://localhost:5433/hackathon
+    username: dev
+    password: dev
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+logging:
+  level:
+    root: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.jdbc.core: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.flywaydb.core.internal.command: DEBUG
