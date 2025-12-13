@@ -1,11 +1,8 @@
 package com.example.hackathonbe.hackathon.controller;
 
-import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
-import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
-import com.example.hackathonbe.hackathon.dto.OverViewDto;
+import com.example.hackathonbe.hackathon.dto.*;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.service.AdminHackathonService;
-import com.example.hackathonbe.hackathon.dto.HackathonAdminResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -70,5 +67,11 @@ public class AdminHackathonController {
         OverViewDto overViewDto = hackathonService.getOverView(hackathonId);
         return ResponseEntity.ok(overViewDto);
     }
+
+    @PostMapping("/{hackathonId}/status")
+    public ResponseEntity<StatusChange> changeStatus(@PathVariable Long hackathonId, @RequestBody StatusChange statusChange) {
+        return ResponseEntity.ok(hackathonService.changeHackathonStatus(hackathonId, statusChange));
+    }
+
 }
 

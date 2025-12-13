@@ -1,5 +1,7 @@
 package com.example.hackathonbe.hackathon.service;
 
+import com.example.hackathonbe.hackathon.dto.PublishDto;
+import com.example.hackathonbe.hackathon.dto.QuestionnaireDto;
 import com.example.hackathonbe.hackathon.model.CoreFieldKey;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.Questionnaire;
@@ -55,13 +57,13 @@ class QuestionnaireServiceTest {
         JsonNode validJson = buildValidQuestionnaireJson();
 
         // when
-        Questionnaire saved = questionnaireService.saveInternalQuestionnaire(hackathonId, validJson);
+        QuestionnaireDto saved = questionnaireService.saveInternalQuestionnaire(hackathonId, validJson);
 
         // then
-        assertThat(saved.getId()).isEqualTo(10L);
-        assertThat(saved.getQuestions()).isEqualTo(validJson);
-        assertThat(saved.getSource()).isEqualTo(QuestionnaireSource.INTERNAL);
-        assertThat(saved.getStatus()).isEqualTo(QuestionnaireStatus.DRAFT);
+        assertThat(saved.id()).isEqualTo(10L);
+        assertThat(saved.questions()).isEqualTo(validJson);
+        assertThat(saved.sourceType()).isEqualTo(QuestionnaireSource.INTERNAL);
+        assertThat(saved.status()).isEqualTo(QuestionnaireStatus.DRAFT);
 
         verify(hackathonRepository).findById(hackathonId);
         verify(questionnaireRepository).save(any(Questionnaire.class));
@@ -177,10 +179,10 @@ class QuestionnaireServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Questionnaire published = questionnaireService.publishInternalQuestionnaire(hackathonId);
+        PublishDto published = questionnaireService.publishInternalQuestionnaire(hackathonId);
 
         // then
-        assertThat(published.getStatus()).isEqualTo(QuestionnaireStatus.PUBLISHED);
+        assertThat(published.status()).isEqualTo(QuestionnaireStatus.PUBLISHED);
         verify(questionnaireRepository).save(questionnaire);
     }
 

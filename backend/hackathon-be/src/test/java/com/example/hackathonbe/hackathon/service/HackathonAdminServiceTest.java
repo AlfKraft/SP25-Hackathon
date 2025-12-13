@@ -236,7 +236,7 @@ class HackathonAdminServiceTest {
         HackathonUpdateRequest request = baseUpdateRequest(
                 LocalDateTime.now().minusDays(3),
                 LocalDateTime.now().plusDays(3),
-                HackathonStatus.FINISHED
+                HackathonStatus.ARCHIVED
         );
 
         HackathonValidationException ex = assertThrows(
@@ -249,7 +249,7 @@ class HackathonAdminServiceTest {
 
     @Test
     void updateHackathon_finishedToDraft_shouldFail() {
-        Hackathon existing = existingHackathon(HackathonStatus.FINISHED);
+        Hackathon existing = existingHackathon(HackathonStatus.ARCHIVED);
 
         when(hackathonRepository.findById(1L)).thenReturn(Optional.of(existing));
 

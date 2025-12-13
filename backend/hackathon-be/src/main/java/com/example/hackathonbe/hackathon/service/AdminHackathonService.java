@@ -5,6 +5,7 @@ import com.example.hackathonbe.auth.repository.UserRepository;
 import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
 import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
 import com.example.hackathonbe.hackathon.dto.OverViewDto;
+import com.example.hackathonbe.hackathon.dto.StatusChange;
 import com.example.hackathonbe.hackathon.exception.HackathonValidationException;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
@@ -83,7 +84,7 @@ public class AdminHackathonService {
         }
 
         // Business rule: FINISHED hackathon must end today or in the past
-        if (request.status() == HackathonStatus.FINISHED &&
+        if (request.status() == HackathonStatus.ARCHIVED &&
                 request.endDate().isAfter(LocalDateTime.now())) {
             throw new HackathonValidationException(
                     "Hackathon with status FINISHED cannot have an end date in the future."
@@ -91,8 +92,8 @@ public class AdminHackathonService {
         }
 
         // Optional rule example: once FINISHED, you cannot change status back
-        if (existing.getStatus() == HackathonStatus.FINISHED &&
-                request.status() != HackathonStatus.FINISHED) {
+        if (existing.getStatus() == HackathonStatus.ARCHIVED &&
+                request.status() != HackathonStatus.ARCHIVED) {
             throw new HackathonValidationException(
                     "Finished hackathons cannot change status."
             );
@@ -135,6 +136,13 @@ public class AdminHackathonService {
         Integer teamsCount = hackathon.getTeams().size();
 
         return new OverViewDto(participantsCount, teamsCount);
+    }
+
+    public StatusChange changeHackathonStatus(Long hackathonId, StatusChange statusChange) {
+        Hackathon hackathon = hackathonRepository.findById(hackathonId).orElseThrow(IllegalArgumentException::new);
+        hackathon.setStatus(statusChange.status());
+        hackathonRepository.save(hackathon);
+        return new StatusChange(hackathon.getStatus());
     }
 }
 

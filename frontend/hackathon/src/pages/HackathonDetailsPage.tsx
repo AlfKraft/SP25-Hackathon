@@ -4,7 +4,7 @@ import { useHackathon } from '@/contexts/HackathonContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, MapPin, Users, ArrowLeft, ClipboardList } from 'lucide-react'
+import { Calendar, MapPin, Users, ArrowLeft, ClipboardList, RefreshCw } from 'lucide-react'
 import type { Hackathon } from '@/types/hackathon'
 
 function formatDateTime(value: unknown): string {
@@ -35,34 +35,28 @@ export default function HackathonDetailsPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
 
-    const {
-        hackathons,
-        currentHackathon,
-        selectHackathonById,
-        loading,
-        error,
-    } = useHackathon()
+    const { hackathons, currentHackathon, selectHackathonById, loading, error } =
+        useHackathon()
 
     const hackathonId = Number(id)
+    const invalidId = !id || Number.isNaN(hackathonId)
 
-    // Ensure the correct hackathon is selected in context when landing directly
     useEffect(() => {
-        if (!Number.isNaN(hackathonId)) {
+        if (!invalidId) {
             selectHackathonById(hackathonId)
         }
-    }, [hackathonId, selectHackathonById])
+    }, [hackathonId, selectHackathonById, invalidId])
 
     const hackathon: Hackathon | null = useMemo(() => {
-        if (currentHackathon && currentHackathon.id === hackathonId) {
-            return currentHackathon
-        }
+        if (invalidId) return null
+        if (currentHackathon && currentHackathon.id === hackathonId) return currentHackathon
         return hackathons.find(h => h.id === hackathonId) ?? null
-    }, [currentHackathon, hackathons, hackathonId])
+    }, [currentHackathon, hackathons, hackathonId, invalidId])
 
     const hasOnsiteQuestionnaire =
-        hackathon &&
-        ((hackathon as any).hasOnsiteQuestionnaire ||
-            (hackathon as any).onsiteQuestionnaire)
+        !!hackathon &&
+        (((hackathon as any).hasOnsiteQuestionnaire as boolean) ||
+            ((hackathon as any).onsiteQuestionnaire as boolean))
 
     const participantCount = hackathon?.participants?.length ?? 0
     const maxParticipants = hackathon?.maxParticipants
@@ -71,16 +65,33 @@ export default function HackathonDetailsPage() {
         navigate('/')
     }
 
+    const handleRetry = () => {
+        if (!invalidId) selectHackathonById(hackathonId)
+    }
+
     const handleSignUp = () => {
         if (!hackathon) return
+        navigate(`/hackathons/${hackathon.id}/questionnaire`)
+    }
 
-        if (hasOnsiteQuestionnaire) {
-            navigate(`/questionnaire?hackathonId=${hackathon.id}`)
-        } else {
-            // Fallback: could be a generic signup or info page
-            // Adjust as your flows evolve
-            navigate(`/questionnaire?hackathonId=${hackathon.id}`)
-        }
+    if (invalidId) {
+        return (
+            <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 md:p-8">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-fit gap-1 text-sky-100"
+                    onClick={handleBack}
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to hackathons
+                </Button>
+
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                    Invalid hackathon id in URL.
+                </div>
+            </div>
+        )
     }
 
     if (loading && !hackathon) {
@@ -103,9 +114,20 @@ export default function HackathonDetailsPage() {
                     <ArrowLeft className="h-4 w-4" />
                     Back to hackathons
                 </Button>
+
                 <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">
                     {error}
                 </div>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-fit gap-2"
+                    onClick={handleRetry}
+                >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry
+                </Button>
             </div>
         )
     }
@@ -127,9 +149,12 @@ export default function HackathonDetailsPage() {
         )
     }
 
+    const ctaDisabled = hackathon.status === 'completed'
+    // Optional: if you only want the questionnaire route when a questionnaire exists:
+    // const ctaDisabled = hackathon.status === 'completed' || !hasOnsiteQuestionnaire
+
     return (
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-4 md:p-8">
-            {/* Header */}
             <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                     <Button
@@ -144,9 +169,7 @@ export default function HackathonDetailsPage() {
                         <h1 className="bg-gradient-to-r from-sky-200 via-cyan-200 to-indigo-300 bg-clip-text text-2xl font-semibold tracking-tight text-transparent">
                             {hackathon.name}
                         </h1>
-                        <p className="mt-1 text-xs text-sky-100/70">
-                            {hackathon.theme || 'Hackathon event'}
-                        </p>
+                        <p className="mt-1 text-xs text-sky-100/70">{hackathon.theme || 'Hackathon event'}</p>
                     </div>
                 </div>
 
@@ -158,10 +181,8 @@ export default function HackathonDetailsPage() {
                 </Badge>
             </header>
 
-            {/* Main card */}
             <Card className="border border-sky-500/20 bg-slate-950/80 shadow-[0_20px_60px_rgba(15,23,42,0.95)] backdrop-blur-xl">
                 <CardContent className="space-y-6 p-4 md:p-6">
-                    {/* Meta info */}
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2 text-sm text-sky-100/80">
                             <div className="flex items-center gap-2">
@@ -171,40 +192,34 @@ export default function HackathonDetailsPage() {
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-sky-300" />
                                 <div className="flex flex-col text-xs">
+                  <span>
+                    <span className="font-semibold text-sky-50">Starts: </span>
+                      {formatDateTime(hackathon.startDate)}
+                  </span>
                                     <span>
-                                        <span className="font-semibold text-sky-50">
-                                            Starts:{' '}
-                                        </span>
-                                        {formatDateTime(hackathon.startDate)}
-                                    </span>
-                                    <span>
-                                        <span className="font-semibold text-sky-50">
-                                            Ends:{' '}
-                                        </span>
+                    <span className="font-semibold text-sky-50">Ends: </span>
                                         {formatDateTime(hackathon.endDate)}
-                                    </span>
+                  </span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Users className="h-4 w-4 text-sky-300" />
                                 <span className="text-xs">
-                                    {maxParticipants
-                                        ? `${participantCount} / ${maxParticipants} participants`
-                                        : `${participantCount} participants`}
-                                </span>
+                  {maxParticipants
+                      ? `${participantCount} / ${maxParticipants} participants`
+                      : `${participantCount} participants`}
+                </span>
                             </div>
                         </div>
 
-                        {/* Sign up CTA */}
                         <div className="flex flex-col items-start justify-center gap-2 md:items-end">
-                            <p className="text-[11px] text-sky-100/70">
-                                Ready to join this hackathon?
-                            </p>
+                            <p className="text-[11px] text-sky-100/70">Ready to join this hackathon?</p>
+
                             <Button
                                 size="sm"
                                 className="flex items-center gap-2 rounded-full bg-sky-500/90 px-5 text-sky-950 shadow-lg shadow-sky-500/40 hover:bg-sky-400"
                                 onClick={handleSignUp}
-                                disabled={hackathon.status === 'completed'}
+                                disabled={ctaDisabled}
                             >
                                 <ClipboardList className="h-4 w-4" />
                                 {hackathon.status === 'completed'
@@ -213,22 +228,23 @@ export default function HackathonDetailsPage() {
                                         ? 'Sign up / fill questionnaire'
                                         : 'Sign up'}
                             </Button>
+
                             {hackathon.status === 'completed' && (
                                 <p className="text-[11px] text-sky-100/60">
                                     This hackathon has ended. Registration is closed.
                                 </p>
                             )}
+
+                            {/* Optional hint if you disable when questionnaire missing */}
+                            {/* {!hasOnsiteQuestionnaire && hackathon.status !== 'completed' && (
+                <p className="text-[11px] text-sky-100/60">No questionnaire required.</p>
+              )} */}
                         </div>
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
-                        <h2 className="text-sm font-semibold text-sky-50">
-                            Description
-                        </h2>
-                        <p className="text-sm text-sky-100/80 whitespace-pre-line">
-                            {hackathon.description}
-                        </p>
+                        <h2 className="text-sm font-semibold text-sky-50">Description</h2>
+                        <p className="text-sm whitespace-pre-line text-sky-100/80">{hackathon.description}</p>
                     </div>
                 </CardContent>
             </Card>

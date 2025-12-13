@@ -1,6 +1,9 @@
 package com.example.hackathonbe.hackathon.controller;
 
 import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
+import com.example.hackathonbe.hackathon.dto.QuestionnaireDto;
+import com.example.hackathonbe.hackathon.model.QuestionnaireSource;
+import com.example.hackathonbe.hackathon.model.QuestionnaireStatus;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,12 +44,22 @@ class QuestionnaireAdminControllerTest {
         long hackathonId = 42L;
 
         JsonNode json = sampleJson();
-        when(questionnaireService.getQuestionsForHackathon(hackathonId)).thenReturn(json);
+        when(questionnaireService.getQuestionsForHackathon(hackathonId)).thenReturn(
+                new QuestionnaireDto(
+                        1L,
+                        hackathonId,
+                        QuestionnaireSource.INTERNAL,
+                        false,
+                        QuestionnaireStatus.DRAFT,
+                        json
+                )
+        );
 
         mockMvc.perform(get("/api/admin/hackathons/{hackathonId}/questionnaire", hackathonId)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(json)));
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(1L));
 
         verify(questionnaireService).getQuestionsForHackathon(hackathonId);
     }

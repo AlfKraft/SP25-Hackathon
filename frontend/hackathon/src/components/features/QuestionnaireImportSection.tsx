@@ -18,7 +18,7 @@ interface QuestionnaireMeta {
     hackathonId: number
     title: string
     description: string
-    sourceType: 'WEB' | 'IMPORT'
+    sourceType: 'INTERNAL' | 'EXTERNAL_UPLOAD'
     isLocked: boolean
     createdAt?: string
     updatedAt?: string
@@ -164,7 +164,7 @@ export default function QuestionnaireImportSection({
                     hackathonId,
                     title: '',
                     description: '',
-                    sourceType: 'IMPORT',
+                    sourceType: 'EXTERNAL_UPLOAD',
                     isLocked: true,
                 })
             }
@@ -233,7 +233,7 @@ export default function QuestionnaireImportSection({
                         <UploadCloud className="h-5 w-5" />
                         <span>Import questionnaire from file</span>
                     </div>
-                    {currentMeta?.sourceType === 'IMPORT' && (
+                    {currentMeta?.sourceType === 'EXTERNAL_UPLOAD' && (
                         <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-[11px] text-amber-100">
               Currently using imported questionnaire
             </span>
