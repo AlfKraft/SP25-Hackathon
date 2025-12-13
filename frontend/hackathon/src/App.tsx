@@ -11,6 +11,8 @@ import AdminHackathonsPage from "@/pages/AdminHackathonsPage.tsx";
 import HackathonAdminDashboard from "@/pages/HackathonAdminDashboard.tsx";
 import HackathonQuestionnaireAdminPage from "@/pages/HackathonQuestionnaireAdminPage.tsx";
 import HackathonTeamsPage from "@/pages/HackathonTeamsPage.tsx";
+import HackathonEditPage from "@/pages/HackathonEditPage.tsx";
+import HackathonDetailsPage from "@/pages/HackathonDetailsPage.tsx";
 
 function App() {
     return (
@@ -33,6 +35,9 @@ function App() {
                                 path="/admin/hackathons/:id/teams"
                                 element={<HackathonTeamsPage />}
                             />
+                            <Route path="/admin/hackathons/:id/edit" element={<HackathonEditPage />} />
+                            <Route path="/hackathons/:id" element={<HackathonDetailsPage />} />
+
                             {/* Protected-ish views (you can guard them later) */}
                             <Route path="/admin/hackathons/:id/participants" element={<ParticipantsPage />} />
                             <Route path="/team-builder" element={<TeambuilderPage />} />

@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Shuffle, Users } from 'lucide-react'
+import {ArrowLeft, Shuffle, Users} from 'lucide-react'
 import { toast } from 'sonner'
 import { TeamsBoard } from '@/components/features/TeamsBoard'
 import { API_URL } from '@/lib/config'
+import { useNavigate } from 'react-router-dom'
 
 export interface TeamMember {
     participant: Participant
@@ -44,7 +45,7 @@ export default function HackathonTeamsPage() {
     // Be robust: accept either :hackathonId or :id from the route
     const params = useParams()
     const rawHackathonId = params.hackathonId ?? params.id
-
+    const navigate = useNavigate()
     // Builder state (generated / working teams)
     const [teamSize, setTeamSize] = useState<number>(4)
     const [loadingGenerate, setLoadingGenerate] = useState(false)
@@ -264,6 +265,17 @@ export default function HackathonTeamsPage() {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-8">
             {/* Header */}
             <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+
+                    {/* Back Button */}
+                    <Button
+                        variant="outline"
+                        onClick={() => navigate(`/admin/hackathons/${hackathonId}`)}
+                        className="border-sky-500/40 bg-slate-900/80 text-sky-100 hover:bg-slate-800/70"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                    </Button>
+
                 <div>
                     <h1 className="bg-gradient-to-r from-sky-200 via-cyan-200 to-indigo-300 bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
                         Teams

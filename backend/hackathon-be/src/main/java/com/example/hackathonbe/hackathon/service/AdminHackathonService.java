@@ -4,6 +4,7 @@ import com.example.hackathonbe.auth.model.User;
 import com.example.hackathonbe.auth.repository.UserRepository;
 import com.example.hackathonbe.hackathon.dto.HackathonCreateRequest;
 import com.example.hackathonbe.hackathon.dto.HackathonUpdateRequest;
+import com.example.hackathonbe.hackathon.dto.OverViewDto;
 import com.example.hackathonbe.hackathon.exception.HackathonValidationException;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
@@ -124,6 +125,16 @@ public class AdminHackathonService {
         return name.toLowerCase()
                 .replaceAll("[^a-z0-9]+", "-")
                 .replaceAll("-+$", "");
+    }
+
+    public OverViewDto getOverView(Long hackathonId) {
+        Hackathon hackathon = hackathonRepository.findById(hackathonId)
+                .orElseThrow(() -> new EntityNotFoundException("Hackathon not found"));
+
+        Integer participantsCount = hackathon.getParticipants().size();
+        Integer teamsCount = hackathon.getTeams().size();
+
+        return new OverViewDto(participantsCount, teamsCount);
     }
 }
 
