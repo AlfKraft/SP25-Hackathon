@@ -1,37 +1,51 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useHackathon } from '@/contexts/HackathonContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Users } from 'lucide-react'
+import { Calendar } from 'lucide-react'
+
+function formatDateRange(start?: any, end?: any) {
+    if (!start && !end) return null
+
+    const fmt = new Intl.DateTimeFormat(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    })
+
+    const s = start ? fmt.format(new Date(start)) : null
+    const e = end ? fmt.format(new Date(end)) : null
+
+    if (s && e) return `${s} – ${e}`
+    return s ?? e
+}
 
 export default function HackathonsPage() {
-    const {
-        hackathons,
-        currentHackathon,
-        setCurrentHackathon,
-        loading,
-        error,
-    } = useHackathon()
+    const { hackathons, currentHackathon, setCurrentHackathon, loading, error } =
+        useHackathon()
 
     const navigate = useNavigate()
 
+    const openHackathons = useMemo(() => {
+        // If your backend already sends only OPEN hackathons, this is still harmless.
+        // If you *do* need filtering, do it here based on your real type values.
+        return hackathons
+    }, [hackathons])
+
     const handleSignUp = (hackathonId: number) => {
-        const selected = hackathons.find((h) => h.id === hackathonId)
+        const selected = openHackathons.find(h => h.id === hackathonId)
         if (!selected) return
 
-        // still useful to keep in context if your questionnaire or other pages need it
         setCurrentHackathon?.(selected)
 
         const hasOnsiteQuestionnaire =
-            (selected as any).hasOnsiteQuestionnaire ||
-            (selected as any).onsiteQuestionnaire
+            (selected as any).hasOnsiteQuestionnaire || (selected as any).onsiteQuestionnaire
 
         if (hasOnsiteQuestionnaire) {
-            // Adjust this route to whatever your questionnaire page actually is
             navigate(`/questionnaire?hackathonId=${hackathonId}`)
         } else {
-            // Fallback: public hackathon page or details
             navigate(`/hackathons/${hackathonId}`)
         }
     }
@@ -47,21 +61,17 @@ export default function HackathonsPage() {
     if (error) {
         return (
             <div className="w-full flex flex-col items-center py-16">
-                <p className="text-red-400 text-sm mb-2">
-                    Failed to load hackathons
-                </p>
+                <p className="text-red-400 text-sm mb-2">Failed to load hackathons</p>
                 <p className="text-slate-400 text-xs">{error}</p>
             </div>
         )
     }
 
-    if (hackathons.length === 0) {
+    if (openHackathons.length === 0) {
         return (
             <div className="w-full flex flex-col items-center py-16">
                 <h1 className="text-3xl font-bold mb-2">Hackathons</h1>
-                <p className="text-slate-300 mb-4">
-                    There are no open hackathons at the moment.
-                </p>
+                <p className="text-slate-300 mb-4">There are no open hackathons at the moment.</p>
             </div>
         )
     }
@@ -75,73 +85,64 @@ export default function HackathonsPage() {
                 </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-                {hackathons.map((hackathon) => {
+            <div className="space-y-3">
+                {openHackathons.map(hackathon => {
                     const hasOnsiteQuestionnaire =
-                        (hackathon as any).hasOnsiteQuestionnaire ||
-                        (hackathon as any).onsiteQuestionnaire
+                        (hackathon as any).hasOnsiteQuestionnaire || (hackathon as any).onsiteQuestionnaire
+
+                    const dateRange = formatDateRange(
+                        (hackathon as any).startDate,
+                        (hackathon as any).endDate,
+                    )
+
+                    const selected = currentHackathon?.id === hackathon.id
 
                     return (
                         <Card
                             key={hackathon.id}
-                            className={`border-slate-800 bg-slate-950/60 ${
-                                currentHackathon?.id === hackathon.id
-                                    ? 'ring-2 ring-sky-500'
-                                    : ''
-                            }`}
+                            className={[
+                                'border-slate-800 bg-slate-950/60',
+                                'rounded-2xl px-4 py-4',
+                                'flex items-center justify-between gap-4',
+                                selected ? 'ring-2 ring-sky-500' : '',
+                            ].join(' ')}
                         >
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-xl">
-                                        {hackathon.name}
-                                    </CardTitle>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="text-base font-semibold text-slate-50 truncate">
+                                                {hackathon.name}
+                                            </div>
 
-                                    {hackathon.status && (
-                                        <Badge
-                                            variant="outline"
-                                            className="capitalize"
-                                        >
-                                            {hackathon.status}
-                                        </Badge>
-                                    )}
+                                            {hackathon.status && (
+                                                <Badge variant="outline" className="capitalize shrink-0">
+                                                    {hackathon.status}
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        {dateRange && (
+                                            <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                                                <Calendar className="h-3.5 w-3.5" />
+                                                <span className="truncate">{dateRange}</span>
+                                                {(hackathon as any).location && (
+                                                    <>
+                                                        <span className="text-slate-600">•</span>
+                                                        <span className="truncate">{(hackathon as any).location}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <p className="text-sm text-slate-400 mt-1 line-clamp-2">
-                                    {hackathon.description}
-                                </p>
-                            </CardHeader>
+                            </div>
 
-                            <CardContent className="space-y-3">
-                                <div className="flex items-center gap-3 text-xs text-slate-400">
-                                    <span className="flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" />
-                                        {hackathon.location}
-                                    </span>
-
-                                    {Array.isArray(hackathon.participants) && (
-                                        <span className="flex items-center gap-1">
-                                            <Users className="h-3 w-3" />
-                                            {hackathon.participants.length}
-                                            {hackathon.maxParticipants
-                                                ? ` / ${hackathon.maxParticipants}`
-                                                : ''}{' '}
-                                            participants
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="flex justify-end">
-                                    <Button
-                                        size="sm"
-                                        onClick={() =>
-                                            handleSignUp(hackathon.id)
-                                        }
-                                    >
-                                        {hasOnsiteQuestionnaire
-                                            ? 'Fill questionnaire'
-                                            : 'View details'}
-                                    </Button>
-                                </div>
-                            </CardContent>
+                            <div className="shrink-0">
+                                <Button size="sm" onClick={() => handleSignUp(hackathon.id)}>
+                                    {hasOnsiteQuestionnaire ? 'Fill questionnaire' : 'View details'}
+                                </Button>
+                            </div>
                         </Card>
                     )
                 })}

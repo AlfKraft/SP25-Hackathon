@@ -1,22 +1,25 @@
 package com.example.hackathonbe.importing.service;
 
-import com.example.hackathonbe.hackathon.model.*;
+import com.example.hackathonbe.common.exceptions.BadRequestException;
+import com.example.hackathonbe.common.exceptions.NotFoundException;
+import com.example.hackathonbe.hackathon.model.CoreFieldKey;
+import com.example.hackathonbe.hackathon.model.Hackathon;
+import com.example.hackathonbe.hackathon.model.Questionnaire;
+import com.example.hackathonbe.hackathon.model.QuestionnaireAnswer;
 import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.example.hackathonbe.hackathon.repository.QuestionnaireAnswerRepository;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
-import com.example.hackathonbe.participant.model.Participant;
-import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.example.hackathonbe.importing.model.*;
 import com.example.hackathonbe.importing.parse.CsvParser;
 import com.example.hackathonbe.importing.parse.SpreadsheetParser;
 import com.example.hackathonbe.importing.parse.XlsxParser;
 import com.example.hackathonbe.importing.preview.PreviewCache;
+import com.example.hackathonbe.participant.model.Participant;
+import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.persistence.Cacheable;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.EmailValidator;
@@ -24,202 +27,202 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Cacheable
 @Slf4j
 public class UploadService {
+
     private final ParticipantRepository participantRepository;
     private final HackathonRepository hackathonRepository;
     private final QuestionnaireService questionnaireService;
     private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
-    private final PreviewCache cache = new PreviewCache();
+
+    private final PreviewCache previewCache = new PreviewCache();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public ValidationReport validate(MultipartFile file) throws Exception {
+    /**
+     * Validate uploaded CSV/XLSX file and store preview rows in cache.
+     * Returns a ValidationReport that frontend can display.
+     *
+     * NOTE: file missing/empty is a request error -> 400.
+     */
+    public ValidationReport validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            return new ValidationReport(null,0,0,0,List.of(), List.of());
+            throw new BadRequestException("File is required");
         }
 
-        SpreadsheetParser parser = switch (ext(file.getOriginalFilename())) {
-            case "csv" -> new CsvParser();
-            case "xlsx","xlsm" -> new XlsxParser();
-            default -> null;
-        };
+        SpreadsheetParser parser = resolveParser(file.getOriginalFilename());
         if (parser == null) {
-            return new ValidationReport(null,0,0,0,
-                    List.of(new ValidationReport.TopError("UNSUPPORTED_FILE_TYPE",1)), List.of());
+            // keep UX: return a report instead of throwing
+            return new ValidationReport(
+                    null,
+                    0,
+                    0,
+                    0,
+                    List.of(new ValidationReport.TopError("UNSUPPORTED_FILE_TYPE", 1)),
+                    List.of()
+            );
         }
 
-        List<ParticipantPreviewRow> parsed;
-        try (InputStream in = file.getInputStream()) {
-            parsed = parser.parse(in);
-        }
+        List<ParticipantPreviewRow> parsedRows = parseFile(parser, file);
 
-        Map<String,Long> top = new LinkedHashMap<>();
-        List<ValidationReport.CellError> cells = new ArrayList<>();
-        List<ParticipantPreviewRow> normalized = new ArrayList<>(parsed.size());
+        // Build validation report
+        Map<String, Long> topErrorCounts = new LinkedHashMap<>();
+        List<ValidationReport.CellError> cellErrors = new ArrayList<>();
+        List<ParticipantPreviewRow> normalizedRows = new ArrayList<>(parsedRows.size());
 
-        // Collect present keys to compute UNKNOWN_HEADER and (optional) MISSING_HEADER
-        Set<String> present = parsed.stream()
-                .flatMap(r -> r.fields().keySet().stream())
+        Set<String> presentKeys = parsedRows.stream()
+                .flatMap(row -> row.fields().keySet().stream())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        // UNKNOWN_HEADER: report at column level (row 1)
-        for (ParticipantPreviewRow r : parsed) {
-            for (var e : r.keyToHeader().entrySet()) {
-                String key = e.getKey();
-                if (!Keys.KNOWN.contains(key)) {
-                    int col = r.keyToColumn().get(key);
-                    cells.add(new ValidationReport.CellError(
-                            1,                        // header row
-                            col,
-                            key,
-                            e.getValue(),            // original header
-                            "UNKNOWN_HEADER",
-                            null
-                    ));
-                }
-            }
-            break; // only need headers once
-        }
-        long unknownCount = present.stream().filter(k -> !Keys.KNOWN.contains(k)).count();
-        if (unknownCount > 0) top.merge("UNKNOWN_HEADER", unknownCount, Long::sum);
+        addUnknownHeaderErrors(parsedRows, presentKeys, topErrorCounts, cellErrors);
+        addMissingHeaderErrors(presentKeys, topErrorCounts, cellErrors);
 
-        // Optional MISSING_HEADER
-        if (!Keys.REQUIRED_MIN.isEmpty()) {
-            Set<String> miss = new LinkedHashSet<>(Keys.REQUIRED_MIN);
-            miss.removeAll(present);
-            if (!miss.isEmpty()) {
-                Long count = (long) miss.size();
-                log.debug("Missing required headers: {}", miss);
-                for (String m : miss) {
-                    cells.add(new ValidationReport.CellError(
-                            1, null, m, m, "MISSING_HEADER", null
-                    ));
-                }
-                top.merge("MISSING_HEADER", count, Long::sum);
-            }
-        }
+        for (ParticipantPreviewRow parsedRow : parsedRows) {
+            Map<String, String> fields = parsedRow.fields();
+            boolean rowValid = true;
 
-        // Row by row checks
-        for (ParticipantPreviewRow r : parsed) {
-            var f = r.fields();
-            boolean ok = true;
-
-            // Email
-            String email = nz(f.get("email"));
+            // Email validation (invalid email -> invalid row)
+            String email = nullToEmpty(fields.get("email"));
             if (!email.isBlank() && !EmailValidator.getInstance().isValid(email)) {
-                add(top, "INVALID_EMAIL");
-                cells.add(cell(r, "email", "INVALID_EMAIL", email));
-                ok = false; // your logic: invalid email -> invalid row
+                increment(topErrorCounts, "INVALID_EMAIL");
+                cellErrors.add(cell(parsedRow, "email", "INVALID_EMAIL", email));
+                rowValid = false;
             }
 
-            // motivation: integer 0..100 (invalidate if bad)
-            String m = nz(f.get("motivation"));
-            if (!m.isBlank()) {
-                boolean goodInt = m.matches("^\\d{1,3}$");
-                Integer mv = null;
-                if (goodInt) mv = Integer.parseInt(m);
-                if (!goodInt || mv < 0 || mv > 100) {
-                    add(top, "INVALID_VALUE:motivation");
-                    cells.add(cell(r, "motivation", "INVALID_VALUE:motivation", m));
-                    ok = false;
+            // motivation: integer 0..100 (your current constraints)
+            String motivationText = nullToEmpty(fields.get("motivation"));
+            if (!motivationText.isBlank()) {
+                boolean isInt = motivationText.matches("^\\d{1,3}$");
+                Integer motivationValue = isInt ? Integer.parseInt(motivationText) : null;
+
+                if (!isInt || motivationValue < 0 || motivationValue > 100) {
+                    increment(topErrorCounts, "INVALID_VALUE:motivation");
+                    cellErrors.add(cell(parsedRow, "motivation", "INVALID_VALUE:motivation", motivationText));
+                    rowValid = false;
                 }
             }
 
-            normalized.add(new ParticipantPreviewRow(f, ok, r.rowNumber(), r.keyToColumn(), r.keyToHeader()));
+            normalizedRows.add(new ParticipantPreviewRow(
+                    fields,
+                    rowValid,
+                    parsedRow.rowNumber(),
+                    parsedRow.keyToColumn(),
+                    parsedRow.keyToHeader()
+            ));
         }
 
-        int total = normalized.size();
-        int valid = (int) normalized.stream().filter(ParticipantPreviewRow::valid).count();
-        int invalid = total - valid;
-        UUID id = cache.put(normalized);
+        int totalRows = normalizedRows.size();
+        int validRows = (int) normalizedRows.stream().filter(ParticipantPreviewRow::valid).count();
+        int invalidRows = totalRows - validRows;
 
-        List<ValidationReport.TopError> topErrors = top.entrySet().stream()
-                .sorted(Map.Entry.<String,Long>comparingByValue().reversed())
-                .map(e -> new ValidationReport.TopError(e.getKey(), e.getValue()))
+        UUID previewId = previewCache.put(normalizedRows);
+
+        List<ValidationReport.TopError> topErrors = topErrorCounts.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .map(entry -> new ValidationReport.TopError(entry.getKey(), entry.getValue()))
                 .toList();
 
-        return new ValidationReport(id, total, valid, invalid, topErrors, cells);
+        return new ValidationReport(previewId, totalRows, validRows, invalidRows, topErrors, cellErrors);
     }
 
-    /* --- helpers --- */
-    private static void add(Map<String,Long> top, String code){ top.merge(code, 1L, Long::sum); }
-    private static String nz(String s){ return s==null? "": s; }
-    private static ValidationReport.CellError cell(ParticipantPreviewRow r, String key, String code, String value){
-        Integer col = r.keyToColumn().get(key);
-        String hdr = r.keyToHeader().getOrDefault(key, key);
-        return new ValidationReport.CellError(r.rowNumber(), col, key, hdr, code, value);
-    }
-    private static String ext(String filename) {
-        if (filename == null) return "";
-        String name = filename.trim();
-        // strip any path (IE/old browsers sometimes include it)
-        int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
-        if (slash >= 0) name = name.substring(slash + 1);
-        int dot = name.lastIndexOf('.');
-        return (dot < 0 || dot == name.length() - 1) ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
-    }
-
+    /**
+     * Import only valid preview rows (cached by previewId) to hackathon.
+     * Creates an EXTERNAL questionnaire JSON based on headers and saves answers as flat objects.
+     */
     @Transactional
     public ImportSummary importValid(UUID previewId, Long hackathonId) {
-        Hackathon hackathon = hackathonRepository.findById(hackathonId)
-                .orElseThrow(() -> new EntityNotFoundException("Hackathon not found: " + hackathonId));
+        if (previewId == null) {
+            throw new BadRequestException("previewId is required");
+        }
+        if (hackathonId == null || hackathonId <= 0) {
+            throw new BadRequestException("Invalid hackathon id");
+        }
 
-        List<ParticipantPreviewRow> rows = cache.get(previewId);
-        if (rows == null) return null;
-        JsonNode createdQuestionnaireJson = createExternalQuestionnaireJson(rows);
-        Questionnaire questionnaire = questionnaireService.saveExternalQuestionnaire(hackathon, createdQuestionnaireJson);
-        int total = rows.size();
+        Hackathon hackathon = hackathonRepository.findById(hackathonId)
+                .orElseThrow(() -> new NotFoundException("Hackathon not found: " + hackathonId));
+
+        List<ParticipantPreviewRow> previewRows = previewCache.get(previewId);
+        if (previewRows == null) {
+            throw new NotFoundException("Preview not found or expired: " + previewId);
+        }
+        if (previewRows.isEmpty()) {
+            return new ImportSummary(0, 0, 0, 0, 0);
+        }
+
+        JsonNode externalQuestionnaireJson = createExternalQuestionnaireJson(previewRows);
+        Questionnaire questionnaire = questionnaireService.saveExternalQuestionnaire(hackathon, externalQuestionnaireJson);
+
+        int total = previewRows.size();
         int skipped = 0;
 
-        List<ObjectNode> validJson = new ArrayList<>();
-        for (var r : rows) {
-            ObjectNode json = ParticipantJson.toJson(r.fields());
-            var errs = ParticipantJson.validate(json);
-            if (!errs.isEmpty()) { skipped++; continue; }
-            validJson.add(json);
+        List<ObjectNode> validObjects = new ArrayList<>();
+        for (ParticipantPreviewRow row : previewRows) {
+            ObjectNode participantJson = ParticipantJson.toJson(row.fields());
+            List<String> validationErrors = ParticipantJson.validate(participantJson);
+            if (!validationErrors.isEmpty()) {
+                skipped++;
+                continue;
+            }
+            validObjects.add(participantJson);
         }
 
-        // 2) dedupe by email (latest wins)
+        // Dedupe by email (latest wins)
         Map<String, ObjectNode> byEmail = new LinkedHashMap<>();
-        for (ObjectNode j : validJson) {
-            byEmail.put(j.get("email").asText().toLowerCase(Locale.ROOT), j);
+        for (ObjectNode rowObject : validObjects) {
+            String email = rowObject.get("email").asText("").trim().toLowerCase(Locale.ROOT);
+            if (!email.isBlank()) {
+                byEmail.put(email, rowObject);
+            }
         }
-        int deduped = validJson.size() - byEmail.size();
+        int deduped = validObjects.size() - byEmail.size();
 
-        // 3) fetch existing
-        Map<String, Participant> existing = participantRepository.findAllByEmailIn(byEmail.keySet()).stream()
-                .collect(Collectors.toMap(p -> p.getEmail().toLowerCase(Locale.ROOT), p -> p));
+        // Fetch existing participants by email
+        Map<String, Participant> existingByEmail = participantRepository.findAllByEmailIn(byEmail.keySet()).stream()
+                .collect(Collectors.toMap(
+                        participant -> participant.getEmail().toLowerCase(Locale.ROOT),
+                        participant -> participant
+                ));
 
-        // 4) upsert (sync columns + jsonb)
-        int inserted = 0, updated = 0;
-        for (var e : byEmail.entrySet()) {
-            String email = e.getKey();
-            ObjectNode data = e.getValue();
-            Participant participant = existing.get(email);
+        int inserted = 0;
+        int updated = 0;
+
+        for (Map.Entry<String, ObjectNode> entry : byEmail.entrySet()) {
+            String email = entry.getKey();
+            ObjectNode data = entry.getValue();
+
+            Participant participant = existingByEmail.get(email);
             if (participant == null) {
                 participant = new Participant();
                 participant.setEmail(email);
                 participant.setFirstName(data.get("first_name").asText());
                 participant.setLastName(data.get("last_name").asText());
+                participant = participantRepository.save(participant);
                 inserted++;
             } else {
                 participant.setFirstName(data.get("first_name").asText());
                 participant.setLastName(data.get("last_name").asText());
+                participant = participantRepository.save(participant);
                 updated++;
             }
-            participant = participantRepository.save(participant);
+
             hackathon.addParticipant(participant);
 
-            QuestionnaireAnswer questionnaireAnswer = new QuestionnaireAnswer();
-            questionnaireAnswer.setQuestionnaire(questionnaire);
-            questionnaireAnswer.setParticipant(participant);
+            Participant finalParticipant = participant;
+            QuestionnaireAnswer questionnaireAnswer = questionnaireAnswerRepository
+                    .findByQuestionnaireAndParticipant(questionnaire, participant)
+                    .orElseGet(() -> {
+                        QuestionnaireAnswer newAnswer = new QuestionnaireAnswer();
+                        newAnswer.setQuestionnaire(questionnaire);
+                        newAnswer.setParticipant(finalParticipant);
+                        return newAnswer;
+                    });
+
             questionnaireAnswer.setData(data);
             questionnaireAnswerRepository.save(questionnaireAnswer);
         }
@@ -228,30 +231,152 @@ public class UploadService {
 
         return new ImportSummary(total, inserted, updated, skipped, deduped);
     }
+
     /**
-     * Creates external questionnaire JSON structure from CSV header.
+     * Creates external questionnaire JSON structure from preview header mapping.
+     * NOTE: this uses KEYS (e.g. "first_name") not header display names.
      */
     public JsonNode createExternalQuestionnaireJson(List<ParticipantPreviewRow> previewRows) {
-        if (previewRows.isEmpty()) {
+        if (previewRows == null || previewRows.isEmpty()) {
             return objectMapper.createObjectNode();
         }
-        Questionnaire questionnaire = new Questionnaire();
-        List<String> headers = new ArrayList<>(previewRows.get(0).keyToHeader().values());
+
+        ParticipantPreviewRow headerRow = previewRows.get(0);
 
         ObjectNode root = objectMapper.createObjectNode();
         ArrayNode questions = objectMapper.createArrayNode();
         root.set("questions", questions);
-        int qIndex = 1;
-        for (String header : headers){
-            CoreFieldKey coreKey = CoreFieldKey.fromKey(header);
-            if (coreKey != null) {
-                ObjectNode question = objectMapper.createObjectNode();
-                question.put("id", "Q" + qIndex++);
-                question.put("label", coreKey.defaultLabel());
-                question.put("type", coreKey.defaultType());
-                questions.add(question);
+
+        int questionIndex = 1;
+
+        // Use keys, and map to header labels where needed
+        for (String key : headerRow.keyToHeader().keySet()) {
+            CoreFieldKey coreKey = CoreFieldKey.fromKey(key);
+            if (coreKey == null) {
+                continue;
+            }
+
+            ObjectNode question = objectMapper.createObjectNode();
+            question.put("id", UUID.randomUUID().toString());
+            question.put("key", key);
+            question.put("label", coreKey.defaultLabel());
+            question.put("type", coreKey.defaultType());
+            questions.add(question);
+        }
+
+        return root;
+    }
+
+    // =========================================================
+    // Internal helpers
+    // =========================================================
+
+    private SpreadsheetParser resolveParser(String originalFilename) {
+        String extension = fileExtension(originalFilename);
+        return switch (extension) {
+            case "csv" -> new CsvParser();
+            case "xlsx", "xlsm" -> new XlsxParser();
+            default -> null;
+        };
+    }
+
+    private List<ParticipantPreviewRow> parseFile(SpreadsheetParser parser, MultipartFile file) {
+        try (InputStream inputStream = file.getInputStream()) {
+            return parser.parse(inputStream);
+        } catch (IOException e) {
+            throw new BadRequestException("Failed to read file");
+        } catch (Exception e) {
+            // Parser errors are user-input errors (bad format)
+            throw new BadRequestException("Failed to parse file. Please upload a valid CSV/XLSX.");
+        }
+    }
+
+    private void addUnknownHeaderErrors(
+            List<ParticipantPreviewRow> parsedRows,
+            Set<String> presentKeys,
+            Map<String, Long> topErrorCounts,
+            List<ValidationReport.CellError> cellErrors
+    ) {
+        if (parsedRows.isEmpty()) return;
+
+        ParticipantPreviewRow firstRow = parsedRows.get(0);
+
+        for (Map.Entry<String, String> entry : firstRow.keyToHeader().entrySet()) {
+            String key = entry.getKey();
+            if (!Keys.KNOWN.contains(key)) {
+                Integer columnIndex = firstRow.keyToColumn().get(key);
+                cellErrors.add(new ValidationReport.CellError(
+                        1,
+                        columnIndex,
+                        key,
+                        entry.getValue(),
+                        "UNKNOWN_HEADER",
+                        null
+                ));
             }
         }
-        return root;
+
+        long unknownCount = presentKeys.stream().filter(key -> !Keys.KNOWN.contains(key)).count();
+        if (unknownCount > 0) {
+            topErrorCounts.merge("UNKNOWN_HEADER", unknownCount, Long::sum);
+        }
+    }
+
+    private void addMissingHeaderErrors(
+            Set<String> presentKeys,
+            Map<String, Long> topErrorCounts,
+            List<ValidationReport.CellError> cellErrors
+    ) {
+        if (Keys.REQUIRED_MIN.isEmpty()) return;
+
+        Set<String> missing = new LinkedHashSet<>(Keys.REQUIRED_MIN);
+        missing.removeAll(presentKeys);
+
+        if (missing.isEmpty()) return;
+
+        for (String missingKey : missing) {
+            cellErrors.add(new ValidationReport.CellError(
+                    1,
+                    null,
+                    missingKey,
+                    missingKey,
+                    "MISSING_HEADER",
+                    null
+            ));
+        }
+
+        topErrorCounts.merge("MISSING_HEADER", (long) missing.size(), Long::sum);
+    }
+
+    private static void increment(Map<String, Long> counters, String code) {
+        counters.merge(code, 1L, Long::sum);
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private static ValidationReport.CellError cell(
+            ParticipantPreviewRow row,
+            String key,
+            String code,
+            String value
+    ) {
+        Integer column = row.keyToColumn().get(key);
+        String header = row.keyToHeader().getOrDefault(key, key);
+        return new ValidationReport.CellError(row.rowNumber(), column, key, header, code, value);
+    }
+
+    private static String fileExtension(String filename) {
+        if (filename == null) return "";
+
+        String name = filename.trim();
+        int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+        if (slash >= 0) name = name.substring(slash + 1);
+
+        int dot = name.lastIndexOf('.');
+        if (dot < 0 || dot == name.length() - 1) return "";
+
+        return name.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 }

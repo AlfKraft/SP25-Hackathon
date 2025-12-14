@@ -1,5 +1,7 @@
 package com.example.hackathonbe.hackathon.service;
 
+import com.example.hackathonbe.common.exceptions.BadRequestException;
+import com.example.hackathonbe.common.exceptions.NotFoundException;
 import com.example.hackathonbe.hackathon.dto.HackathonResponse;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
@@ -84,7 +86,7 @@ class HackathonServiceTest {
 
         // expect
         assertThatThrownBy(() -> service.getHackathonById(99L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Hackathon not found: 99");
     }
 
@@ -96,7 +98,7 @@ class HackathonServiceTest {
 
         // expect
         assertThatThrownBy(() -> service.getHackathonById(5L))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Hackathon is not open: 5");
     }
 
@@ -107,8 +109,8 @@ class HackathonServiceTest {
         h.setDescription("Some description");
         h.setLocation("Tartu");
         h.setStatus(status);
-        h.setStartDate(LocalDateTime.of(2025, 1, 10, 9, 0));
-        h.setEndDate(LocalDateTime.of(2025, 1, 12, 18, 0));
+        h.setStartDate(LocalDateTime.now().plusDays(1));
+        h.setEndDate(LocalDateTime.now().plusDays(7));
         return h;
     }
 }

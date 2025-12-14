@@ -1,7 +1,10 @@
 package com.example.hackathonbe.hackathon.exception;
 
-public class HackathonValidationException extends RuntimeException {
+import com.example.hackathonbe.common.exceptions.ApiException;
+import org.springframework.http.HttpStatus;
+
+public class HackathonValidationException extends ApiException {
     public HackathonValidationException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message);
     }
 }
