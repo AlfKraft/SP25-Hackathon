@@ -10,6 +10,8 @@ import { API_URL } from '@/lib/config'
 import type { Question } from '@/types/questionnaire'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { useHackathon } from '@/contexts/HackathonContext'
+
 
 const REQUIRED_MIN_FIELDS = [
     'first_name',
@@ -47,6 +49,7 @@ interface QuestionnaireMeta {
 export default function HackathonQuestionnaireAdminPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
+    const { refreshHackathons } = useHackathon()
     const hackathonId = Number(id)
     const [publishing, setPublishing] = useState(false)
     const [publishError, setPublishError] = useState<string | null>(null)
@@ -131,6 +134,7 @@ export default function HackathonQuestionnaireAdminPage() {
                 const text = await res.text()
                 throw new Error(text || `Failed to publish (status ${res.status})`)
             }
+            await refreshHackathons()
             const data: PublishedDto = await res.json()
 
             setPublished(data.status === 'PUBLISHED')
