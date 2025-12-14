@@ -65,7 +65,7 @@ export default function HackathonDetailsPage() {
     const maxParticipants = hackathon?.maxParticipants
 
     const handleBack = () => {
-        navigate('/')
+        navigate(-1)
     }
 
     const handleRetry = () => {
