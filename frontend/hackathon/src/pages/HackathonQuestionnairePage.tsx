@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { API_URL } from '@/lib/config'
 import type { Question } from '@/types/questionnaire'
-import {type AnswerRow, QuestionnaireAnswerForm} from '@/components/questionnaire/QuestionnaireAnswerForm'
+import { type AnswerRow, QuestionnaireAnswerForm } from '@/components/questionnaire/QuestionnaireAnswerForm'
 import { Button } from '@/components/ui/button'
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'
@@ -21,6 +21,9 @@ export default function HackathonQuestionnairePage() {
     const [loadError, setLoadError] = useState<string | null>(null)
     const [submitError, setSubmitError] = useState<string | null>(null)
 
+    // ✅ NEW
+    const [submitted, setSubmitted] = useState(false)
+
     useEffect(() => {
         if (!hackathonId) {
             setState('error')
@@ -35,17 +38,16 @@ export default function HackathonQuestionnairePage() {
             setLoadError(null)
 
             try {
-                const res = await fetch(
-                    `${API_URL}/api/hackathons/${hackathonId}/questionnaire`,
-                    { method: 'GET', credentials: 'include' }
-                )
+                const res = await fetch(`${API_URL}/api/hackathons/${hackathonId}/questionnaire`, {
+                    method: 'GET',
+                    credentials: 'include',
+                })
 
                 if (!res.ok) {
                     const text = await res.text().catch(() => '')
                     throw new Error(text || `Failed to load questionnaire (status ${res.status})`)
                 }
 
-                // Expecting: Question[]  OR  { questions: Question[] }
                 const data = await res.json()
                 const qs: Question[] = Array.isArray(data) ? data : (data?.questions ?? [])
 
@@ -71,19 +73,24 @@ export default function HackathonQuestionnairePage() {
         if (!hackathonId) return
         setSubmitError(null)
 
-        const res = await fetch(
-            `${API_URL}/api/hackathons/${hackathonId}/questionnaire/submit`,
-            {
+        try {
+            const res = await fetch(`${API_URL}/api/hackathons/${hackathonId}/questionnaire/submit`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ answers }),
-            }
-        )
+            })
 
-        if (!res.ok) {
-            const text = await res.text().catch(() => '')
-            throw new Error(text || `Submit failed (status ${res.status})`)
+            if (!res.ok) {
+                const text = await res.text().catch(() => '')
+                throw new Error(text || `Submit failed (status ${res.status})`)
+            }
+
+            // ✅ NEW: hide everything else after success
+            setSubmitted(true)
+        } catch (e: any) {
+            setSubmitError(e?.message ?? 'Failed to submit questionnaire.')
+            throw e // keep form's internal error handling working
         }
     }
 
@@ -114,7 +121,22 @@ export default function HackathonQuestionnairePage() {
         )
     }
 
-    // ready
+    // ✅ NEW: after successful submit, show ONLY the green card
+    if (submitted) {
+        return (
+            <div className="mx-auto max-w-2xl">
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-emerald-100">
+                    <div className="text-sm font-semibold">Submitted ✅</div>
+                    <p className="mt-1 text-sm text-emerald-100/90">
+                        Your questionnaire answers have been submitted. If you want to change your answers,
+                        please fill the form again with the same email and submit one more time.
+                    </p>
+                </div>
+            </div>
+        )
+    }
+
+    // ready (normal form view)
     return (
         <div className="mx-auto max-w-2xl space-y-4">
             <div className="flex items-start justify-between gap-3">
@@ -136,10 +158,8 @@ export default function HackathonQuestionnairePage() {
                 </div>
             ) : (
                 <>
-                    <QuestionnaireAnswerForm
-                        questions={questions}
-                        onSubmit={handleSubmit}
-                    />
+                    <QuestionnaireAnswerForm questions={questions} onSubmit={handleSubmit} />
+
                     {submitError && (
                         <div className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-3 text-xs text-rose-200">
                             {submitError}

@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { API_URL } from '@/lib/config'
 import { Card } from '@/components/ui/card'
-import { Loader2, LayoutDashboard, Users, FileText, Network, Trash2, RefreshCw, ChevronDown } from 'lucide-react'
+import {Loader2, LayoutDashboard, Users, FileText, Network, Trash2, RefreshCw, ChevronDown, Edit} from 'lucide-react'
 import {cn} from "@/lib/utils.ts";
 
 type HackathonStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | string
@@ -42,7 +42,7 @@ const STATUS_OPTIONS: StatusOption[] = [
     {
         value: 'OPEN',
         label: 'Published',
-        hint: 'Visible to participants (public).',
+        hint: 'Visible to public.',
         badgeClass: 'border-sky-400/40 bg-sky-500/15 text-sky-100',
     },
     {
@@ -182,7 +182,6 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
         setStatusOpen(false)
 
         try {
-            // TODO: create this endpoint on backend
             const res = await fetch(`${API_URL}/api/admin/hackathons/${id}/status`, {
                 method: 'POST',
                 credentials: 'include',
@@ -268,7 +267,6 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
                                 <h1 className="bg-gradient-to-r from-sky-200 via-cyan-200 to-indigo-300 bg-clip-text text-2xl font-semibold tracking-tight text-transparent">
                                     {hackathon.name}
                                 </h1>
-                                <p className="text-xs text-sky-100/70">{hackathon.description}</p>
                                 <p className="text-[11px] text-sky-100/60">
                                     {hackathon.location || 'Location TBA'} • {new Date(hackathon.startDate).toLocaleString()} →{' '}
                                     {new Date(hackathon.endDate).toLocaleString()}
@@ -299,9 +297,6 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
                                             <div className="absolute right-0 z-20 mt-2 w-[280px] overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-950/95 p-2 shadow-[0_30px_90px_rgba(0,0,0,0.6)] backdrop-blur">
                                                 <div className="px-2 pb-2 pt-1">
                                                     <p className="text-xs font-semibold text-slate-100">Change status</p>
-                                                    <p className="mt-0.5 text-[11px] text-slate-300">
-                                                        This UI is ready. Add the PATCH endpoint and you’re done.
-                                                    </p>
                                                 </div>
 
                                                 <div className="space-y-1">
@@ -434,6 +429,10 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
                             <button className={tabClasses(isActive(`/admin/hackathons/${id}/teams`))} onClick={() => go(`/admin/hackathons/${id}/teams`)} disabled={isBusy}>
                                 <Network className="h-3.5 w-3.5" />
                                 Teams
+                            </button>
+                            <button className={tabClasses(isActive(`/admin/hackathons/${id}/edit`))} onClick={() => go(`/admin/hackathons/${id}/edit`)} disabled={isBusy}>
+                                <Edit className="h-3.5 w-3.5" />
+                                Edit
                             </button>
                         </div>
                     </>

@@ -164,6 +164,7 @@ export default function AdminHackathonsPage() {
         setFormOpen(true)
     }
 
+    /*
     const openEdit = (hackathon: AdminHackathon) => {
         setFormMode('edit')
         setEditingHackathon(hackathon)
@@ -182,6 +183,8 @@ export default function AdminHackathonsPage() {
         })
         setFormOpen(true)
     }
+
+     */
 
     const closeForm = () => {
         if (formSubmitting) return
@@ -446,9 +449,6 @@ export default function AdminHackathonsPage() {
                       {h.status}
                     </span>
                                     </div>
-                                    <p className="mt-1 line-clamp-2 text-xs text-sky-100/70">
-                                        {h.description}
-                                    </p>
                                 </div>
                             </CardTitle>
                         </CardHeader>
@@ -465,18 +465,6 @@ export default function AdminHackathonsPage() {
                                 <span className="font-medium text-sky-50">End: </span>
                                 {new Date(h.endDate).toLocaleString()}
                             </p>
-                            <p className="flex flex-wrap gap-2 pt-1 text-[11px]">
-                                {h.requireApproval && (
-                                    <span className="rounded-full border border-emerald-400/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-100">
-                    Approval required
-                  </span>
-                                )}
-                                {h.allowTeamCreation && (
-                                    <span className="rounded-full border border-indigo-400/50 bg-indigo-500/15 px-2 py-0.5 text-[10px] font-medium text-indigo-100">
-                    Teams allowed
-                  </span>
-                                )}
-                            </p>
                         </CardContent>
                         <CardFooter className="flex items-center justify-between gap-3 pt-3">
                             {/* Left: primary action – open dashboard */}
@@ -488,17 +476,6 @@ export default function AdminHackathonsPage() {
                             >
                                 <LayoutDashboard className="h-4 w-4" />
                                 Open
-                            </Button>
-
-                            {/* Middle: quick inline edit using the existing modal */}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="hidden items-center gap-1 rounded-full border-sky-500/50 bg-slate-900/60 text-sky-100 hover:bg-slate-800/80 hover:text-sky-50 md:flex"
-                                onClick={() => openEdit(h)}
-                            >
-                                <Edit className="h-4 w-4" />
-                                Edit
                             </Button>
 
                             {/* Right: dropdown with deep links */}
@@ -521,7 +498,7 @@ export default function AdminHackathonsPage() {
                                         onClick={() => goToEditPage(h.id)}
                                     >
                                         <Edit className="h-4 w-4" />
-                                        <span>Edit details (full page)</span>
+                                        <span>Edit details</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         className="flex items-center gap-2 text-xs focus:bg-slate-800/80"

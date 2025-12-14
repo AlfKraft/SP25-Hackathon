@@ -53,10 +53,13 @@ export default function HackathonDetailsPage() {
         return hackathons.find(h => h.id === hackathonId) ?? null
     }, [currentHackathon, hackathons, hackathonId, invalidId])
 
+    /*
     const hasOnsiteQuestionnaire =
         !!hackathon &&
         (((hackathon as any).hasOnsiteQuestionnaire as boolean) ||
             ((hackathon as any).onsiteQuestionnaire as boolean))
+
+     */
 
     const participantCount = hackathon?.participants?.length ?? 0
     const maxParticipants = hackathon?.maxParticipants
@@ -222,11 +225,7 @@ export default function HackathonDetailsPage() {
                                 disabled={ctaDisabled}
                             >
                                 <ClipboardList className="h-4 w-4" />
-                                {hackathon.status === 'completed'
-                                    ? 'Event finished'
-                                    : hasOnsiteQuestionnaire
-                                        ? 'Sign up / fill questionnaire'
-                                        : 'Sign up'}
+                                Join
                             </Button>
 
                             {hackathon.status === 'completed' && (

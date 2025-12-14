@@ -1,6 +1,6 @@
 // src/pages/HackathonAdminDashboard.tsx
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { HackathonAdminLayout } from './HackathonAdminLayout'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
@@ -14,7 +14,7 @@ type OverviewDto = {
 export default function HackathonAdminDashboard() {
     const { id } = useParams<{ id: string }>()
     const hackathonId = Number(id)
-
+    const navigate = useNavigate()
     const [overview, setOverview] = useState<OverviewDto | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -72,6 +72,7 @@ export default function HackathonAdminDashboard() {
                     <Button
                         size="sm"
                         className="rounded-full bg-sky-500/90 px-4 text-sky-950 shadow-sm shadow-sky-500/40 hover:bg-sky-400"
+                        onClick={() => navigate(`/hackathons/${hackathonId}`)}
                     >
                         Go to public page
                         <ArrowRight className="ml-1 h-4 w-4" />
