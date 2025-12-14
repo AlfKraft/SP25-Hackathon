@@ -19,7 +19,6 @@ import { Switch } from '@/components/ui/switch'
 import {
     Loader2,
     Plus,
-    Trash2,
     Edit,
     MoreHorizontal,
     Users,
@@ -337,27 +336,6 @@ export default function AdminHackathonsPage() {
         throw err
     }
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Delete this hackathon? This action cannot be undone.')) return
-
-        try {
-            const res = await fetch(`${API_URL}/api/admin/hackathons/${id}`, {
-                method: 'DELETE',
-                credentials: 'include',
-            })
-
-            if (!res.ok && res.status !== 204) {
-                const text = await res.text()
-                throw new Error(text || 'Failed to delete hackathon')
-            }
-
-            setHackathons(prev => prev.filter(h => h.id !== id))
-        } catch (e: any) {
-            console.error('Failed to delete hackathon', e)
-            setError(e?.message ?? 'Failed to delete hackathon')
-        }
-    }
-
     const sortedHackathons = useMemo(
         () =>
             [...hackathons].sort(
@@ -520,16 +498,6 @@ export default function AdminHackathonsPage() {
                                     >
                                         <Network className="h-4 w-4" />
                                         <span>Generate / manage teams</span>
-                                    </DropdownMenuItem>
-
-                                    <div className="my-1 h-px bg-slate-800/80" />
-
-                                    <DropdownMenuItem
-                                        className="flex items-center gap-2 text-xs text-red-300 focus:bg-red-500/10 focus:text-red-200"
-                                        onClick={() => handleDelete(h.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span>Delete hackathon</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

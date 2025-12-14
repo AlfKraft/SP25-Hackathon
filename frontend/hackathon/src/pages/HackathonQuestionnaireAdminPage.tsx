@@ -170,7 +170,7 @@ export default function HackathonQuestionnaireAdminPage() {
             <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
                 <button
                     type="button"
-                    onClick={() => navigate('/admin')}
+                    onClick={() => navigate(-1)}
                     className="flex items-center gap-1 rounded-full border border-sky-500/40 bg-slate-900/70 px-2 py-1 text-xs text-sky-100 transition-all hover:border-sky-400 hover:bg-slate-800/90 hover:text-sky-50 disabled:opacity-60"
                 >
                     <svg

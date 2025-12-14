@@ -239,11 +239,7 @@ export default function HackathonEditPage() {
 
     const handleBack = () => {
         // back to dashboard if we know id, otherwise list
-        if (hackathon) {
-            navigate(`/admin/hackathons/${hackathon.id}`)
-        } else {
-            navigate('/admin/hackathons')
-        }
+        navigate(-1)
     }
 
     return (

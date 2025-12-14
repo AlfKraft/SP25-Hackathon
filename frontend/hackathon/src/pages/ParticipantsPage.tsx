@@ -277,7 +277,7 @@ export default function ParticipantsPage() {
                     {/* Back Button */}
                     <Button
                         variant="outline"
-                        onClick={() => navigate(`/admin/hackathons/${hackathonId}`)}
+                        onClick={() => navigate(-1)}
                         className="border-sky-500/40 bg-slate-900/80 text-sky-100 hover:bg-slate-800/70"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
