@@ -6,6 +6,8 @@ import { API_URL } from '@/lib/config'
 import { Card } from '@/components/ui/card'
 import {Loader2, LayoutDashboard, Users, FileText, Network, Trash2, RefreshCw, ChevronDown, Edit} from 'lucide-react'
 import {cn} from "@/lib/utils.ts";
+import { useHackathon } from '@/contexts/HackathonContext'
+
 
 type HackathonStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | string
 
@@ -68,6 +70,7 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const location = useLocation()
+    const { refreshHackathons } = useHackathon()
 
     const [hackathon, setHackathon] = useState<HackathonAdmin | null>(null)
     const [loading, setLoading] = useState(true)
@@ -145,6 +148,7 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
                 const text = await res.text()
                 throw new Error(text || `Failed to delete (status ${res.status})`)
             }
+            await refreshHackathons()
 
             navigate('/admin', { replace: true })
         } catch (e: any) {
@@ -193,6 +197,8 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
                 const text = await res.text()
                 throw new Error(text || `Failed to change status (status ${res.status})`)
             }
+
+            await refreshHackathons()
 
             // Prefer updated object if backend returns it
             const contentType = res.headers.get('content-type') || ''

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Loader2, ArrowLeft } from 'lucide-react'
+import { useHackathon } from '@/contexts/HackathonContext'
 
 // Keep statuses in sync with backend enum
 const HACKATHON_STATUSES = ['DRAFT', 'OPEN', 'FINISHED', 'CLOSED'] as const
@@ -43,7 +44,7 @@ type FieldErrors = Record<string, string>
 export default function HackathonEditPage() {
     const { id } = useParams<{ id: string }>()
     const hackathonId = Number(id)
-
+    const { refreshHackathons } = useHackathon()
     const navigate = useNavigate()
 
     const [loading, setLoading] = useState(true)
@@ -140,7 +141,6 @@ export default function HackathonEditPage() {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         if (!hackathon) return
-
         setSaving(true)
         setSaveError(null)
         setFieldErrors({})
@@ -167,7 +167,7 @@ export default function HackathonEditPage() {
             if (!res.ok) {
                 await handleValidationErrorResponse(res)
             }
-
+            await refreshHackathons()
             const updated: AdminHackathon = await res.json()
             setHackathon(updated)
 
