@@ -36,7 +36,10 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/logout",
                                 "/api/hackathons/*",
-                                "/api/hackathons"
+                                "/api/hackathons",
+                                "/api/hackathons/*/questionnaire",
+                                "/api/hackathons/*/questionnaire/submit"
+
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

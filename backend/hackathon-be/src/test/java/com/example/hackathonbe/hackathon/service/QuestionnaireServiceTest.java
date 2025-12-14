@@ -1,5 +1,6 @@
 package com.example.hackathonbe.hackathon.service;
 
+import com.example.hackathonbe.common.exceptions.BadRequestException;
 import com.example.hackathonbe.hackathon.dto.PublishDto;
 import com.example.hackathonbe.hackathon.dto.QuestionnaireDto;
 import com.example.hackathonbe.hackathon.model.CoreFieldKey;
@@ -133,7 +134,7 @@ class QuestionnaireServiceTest {
 
         // when / then
         assertThatThrownBy(() -> questionnaireService.getPublicQuestionnaire(hackathonId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("not published");
     }
 

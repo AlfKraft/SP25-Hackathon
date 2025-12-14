@@ -1,71 +1,115 @@
 package com.example.hackathonbe.common.exceptions;
 
-import com.example.hackathonbe.hackathon.exception.HackathonValidationException;
+import com.example.hackathonbe.common.exceptions.dto.ApiError;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import jakarta.validation.ConstraintViolationException;
-import java.util.HashMap;
+import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Your custom app validation exception
-    @ExceptionHandler(HackathonValidationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleHackathonValidation(HackathonValidationException ex) {
-        return Map.of(
-                "error", "VALIDATION_ERROR",
-                "message", ex.getMessage()
+    // 1) Your domain exceptions with built-in HTTP status codes
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ApiError> handleApiException(ApiException ex, HttpServletRequest req) {
+        ApiError body = new ApiError(
+                ex.getCode(),
+                ex.getMessage(),
+                ex.getStatus().value(),
+                req.getRequestURI(),
+                OffsetDateTime.now(),
+                null
         );
+        return ResponseEntity.status(ex.getStatus()).body(body);
     }
 
+    // 2) Bean Validation: @Valid body DTOs
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiError> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+                                                                 HttpServletRequest req) {
 
-        List<Map<String, Object>> fieldErrors = ex.getBindingResult()
+        List<ApiError.FieldViolation> fieldErrors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(fe -> Map.<String, Object>of(
-                        "field", fe.getField(),
-                        "message", fe.getDefaultMessage(),
-                        "rejectedValue", fe.getRejectedValue(),
-                        "code", fe.getCode()
+                .map(fe -> new ApiError.FieldViolation(
+                        fe.getField(),
+                        fe.getDefaultMessage(),
+                        fe.getRejectedValue()
                 ))
                 .toList();
 
-        return Map.of(
-                "error", "VALIDATION_ERROR",
-                "message", "Validation failed",
-                "fieldErrors", fieldErrors
+        ApiError body = new ApiError(
+                "VALIDATION_ERROR",
+                "Validation failed",
+                HttpStatus.BAD_REQUEST.value(),
+                req.getRequestURI(),
+                OffsetDateTime.now(),
+                fieldErrors
         );
+
+        return ResponseEntity.badRequest().body(body);
     }
 
-    // OPTIONAL: handles @Valid on @RequestParam, @PathVariable, etc.
+    // 3) Bean Validation: @RequestParam / @PathVariable constraints
     @ExceptionHandler(ConstraintViolationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleConstraintViolation(ConstraintViolationException ex) {
+    public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException ex,
+                                                              HttpServletRequest req) {
 
-        List<Map<String, Object>> violations = ex.getConstraintViolations()
+        List<ApiError.FieldViolation> violations = ex.getConstraintViolations()
                 .stream()
-                .map(v -> Map.<String, Object>of(
-                        "field", v.getPropertyPath().toString(),
-                        "message", v.getMessage(),
-                        "invalidValue", v.getInvalidValue()
+                .map(v -> new ApiError.FieldViolation(
+                        v.getPropertyPath().toString(),
+                        v.getMessage(),
+                        v.getInvalidValue()
                 ))
                 .toList();
 
-        return Map.of(
-                "error", "VALIDATION_ERROR",
-                "message", "Validation failed",
-                "fieldErrors", violations
+        ApiError body = new ApiError(
+                "VALIDATION_ERROR",
+                "Validation failed",
+                HttpStatus.BAD_REQUEST.value(),
+                req.getRequestURI(),
+                OffsetDateTime.now(),
+                violations
         );
+
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    // 4) Spring Security (when you add/enable it)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest req) {
+        ApiError body = new ApiError(
+                "FORBIDDEN",
+                "You don't have permission to perform this action.",
+                HttpStatus.FORBIDDEN.value(),
+                req.getRequestURI(),
+                OffsetDateTime.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    // 5) Last resort (avoid leaking internal details)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest req) {
+        // TODO: log ex with stacktrace + request id
+        ApiError body = new ApiError(
+                "INTERNAL_ERROR",
+                "Unexpected server error",
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                req.getRequestURI(),
+                OffsetDateTime.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

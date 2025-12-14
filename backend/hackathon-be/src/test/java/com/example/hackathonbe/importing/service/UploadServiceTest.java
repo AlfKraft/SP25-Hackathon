@@ -1,5 +1,6 @@
 package com.example.hackathonbe.importing.service;
 
+import com.example.hackathonbe.common.exceptions.BadRequestException;
 import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.example.hackathonbe.hackathon.service.QuestionnaireService;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
@@ -11,6 +12,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 class UploadServiceTest {
@@ -99,13 +101,7 @@ class UploadServiceTest {
     void validate_emptyFile() throws Exception {
         var file = new MockMultipartFile("file", "empty.csv", "text/csv", new byte[0]);
 
-        ValidationReport report = service.validate(file);
-
-        assertThat(report.batchPreviewId()).isNull();
-        assertThat(report.totalRows()).isZero();
-        assertThat(report.validRows()).isZero();
-        assertThat(report.invalidRows()).isZero();
-        assertThat(report.topErrorCodes()).isEmpty();
+        assertThatThrownBy(() -> service.validate(file)).isInstanceOf(BadRequestException.class);
     }
 
     @Test

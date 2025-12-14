@@ -1,5 +1,6 @@
 package com.example.hackathonbe.participant.service;
 
+import com.example.hackathonbe.common.exceptions.NotFoundException;
 import com.example.hackathonbe.hackathon.model.Hackathon;
 import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import com.example.hackathonbe.participant.dto.ParticipantDto;
@@ -13,10 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,34 +37,31 @@ class ParticipantServiceTest {
     void getAllParticipants_returnsMappedDtosForHackathonParticipants() {
         Long hackathonId = 1L;
 
-        Hackathon hackathon = getHackathon();
+        Hackathon hackathon = buildHackathonWithTwoParticipants();
 
-        when(hackathonRepository.getReferenceById(hackathonId)).thenReturn(hackathon);
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
 
         List<ParticipantDto> result = participantService.getAllParticipants(hackathonId);
 
         assertThat(result).hasSize(2);
         result.forEach(dto -> assertThat(dto.id()).isIn(10L, 11L));
-        verify(hackathonRepository).getReferenceById(hackathonId);
+
+        verify(hackathonRepository).findById(hackathonId);
         verifyNoInteractions(participantRepository);
     }
 
-    private static Hackathon getHackathon() {
-        Participant participant1 = new Participant();
-        participant1.setId(10L);
-        participant1.setEmail("john@example.com");
-        participant1.setFirstName("John");
-        participant1.setLastName("Doe");
+    @Test
+    void getAllParticipants_throwsNotFound_whenHackathonMissing() {
+        Long hackathonId = 1L;
 
-        Participant participant2 = new Participant();
-        participant2.setId(11L);
-        participant2.setEmail("jane@example.com");
-        participant2.setFirstName("Jane");
-        participant2.setLastName("Smith");
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.empty());
 
-        Hackathon hackathon = new Hackathon();
-        hackathon.setParticipants(new HashSet<>(List.of(participant1, participant2)));
-        return hackathon;
+        assertThatThrownBy(() -> participantService.getAllParticipants(hackathonId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Hackathon not found");
+
+        verify(hackathonRepository).findById(hackathonId);
+        verifyNoInteractions(participantRepository);
     }
 
     @Test
@@ -83,7 +78,7 @@ class ParticipantServiceTest {
         Hackathon hackathon = new Hackathon();
         hackathon.setParticipants(new HashSet<>(List.of(participant)));
 
-        when(hackathonRepository.getReferenceById(hackathonId)).thenReturn(hackathon);
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
 
         ParticipantInfoResponse response = participantService.getParticipantById(participantId, hackathonId);
 
@@ -92,21 +87,26 @@ class ParticipantServiceTest {
         assertThat(response.firstName()).isEqualTo("John");
         assertThat(response.lastName()).isEqualTo("Doe");
 
-        verify(hackathonRepository).getReferenceById(hackathonId);
+        verify(hackathonRepository).findById(hackathonId);
+        verifyNoInteractions(participantRepository);
     }
 
     @Test
-    void getParticipantById_throws_whenParticipantNotFoundInHackathon() {
+    void getParticipantById_throwsNotFound_whenParticipantNotFoundInHackathon() {
         Long hackathonId = 1L;
         Long participantId = 999L;
 
         Hackathon hackathon = new Hackathon();
         hackathon.setParticipants(new HashSet<>());
 
-        when(hackathonRepository.getReferenceById(hackathonId)).thenReturn(hackathon);
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
 
         assertThatThrownBy(() -> participantService.getParticipantById(participantId, hackathonId))
-                .isInstanceOf(NoSuchElementException.class);
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Participant 999 not found in hackathon null");
+
+        verify(hackathonRepository).findById(hackathonId);
+        verifyNoInteractions(participantRepository);
     }
 
     @Test
@@ -136,7 +136,7 @@ class ParticipantServiceTest {
         saved.setFirstName("NewFirst");
         saved.setLastName("NewLast");
 
-        when(hackathonRepository.getReferenceById(hackathonId)).thenReturn(hackathon);
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
         when(participantRepository.save(existing)).thenReturn(saved);
 
         ParticipantInfoResponse response = participantService.updateParticipant(hackathonId, participantId, request);
@@ -150,12 +150,12 @@ class ParticipantServiceTest {
         assertThat(response.firstName()).isEqualTo("NewFirst");
         assertThat(response.lastName()).isEqualTo("NewLast");
 
-        verify(hackathonRepository).getReferenceById(hackathonId);
+        verify(hackathonRepository).findById(hackathonId);
         verify(participantRepository).save(existing);
     }
 
     @Test
-    void updateParticipant_throws_whenParticipantNotFoundInHackathon() {
+    void updateParticipant_throwsNotFound_whenParticipantNotFoundInHackathon() {
         Long hackathonId = 1L;
         Long participantId = 999L;
 
@@ -169,11 +169,13 @@ class ParticipantServiceTest {
                 "test@example.com"
         );
 
-        when(hackathonRepository.getReferenceById(hackathonId)).thenReturn(hackathon);
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
 
         assertThatThrownBy(() -> participantService.updateParticipant(hackathonId, participantId, request))
-                .isInstanceOf(NoSuchElementException.class);
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Participant 999 not found in hackathon null");
 
+        verify(hackathonRepository).findById(hackathonId);
         verify(participantRepository, never()).save(any());
     }
 
@@ -188,14 +190,33 @@ class ParticipantServiceTest {
         Hackathon hackathon = new Hackathon();
         hackathon.setParticipants(new HashSet<>(List.of(participant)));
 
-        when(hackathonRepository.getReferenceById(hackathonId)).thenReturn(hackathon);
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
+        when(hackathonRepository.save(any(Hackathon.class))).thenAnswer(inv -> inv.getArgument(0));
 
         participantService.deleteParticipant(participantId, hackathonId);
 
         assertThat(hackathon.getParticipants()).isEmpty();
 
-        verify(hackathonRepository).getReferenceById(hackathonId);
-        // Current implementation does not call repository.delete(...)
+        verify(hackathonRepository).findById(hackathonId);
+        verify(hackathonRepository).save(hackathon);
         verifyNoInteractions(participantRepository);
+    }
+
+    private static Hackathon buildHackathonWithTwoParticipants() {
+        Participant participant1 = new Participant();
+        participant1.setId(10L);
+        participant1.setEmail("john@example.com");
+        participant1.setFirstName("John");
+        participant1.setLastName("Doe");
+
+        Participant participant2 = new Participant();
+        participant2.setId(11L);
+        participant2.setEmail("jane@example.com");
+        participant2.setFirstName("Jane");
+        participant2.setLastName("Smith");
+
+        Hackathon hackathon = new Hackathon();
+        hackathon.setParticipants(new HashSet<>(List.of(participant1, participant2)));
+        return hackathon;
     }
 }
