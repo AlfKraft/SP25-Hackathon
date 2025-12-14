@@ -11,6 +11,7 @@ type QuestionType = Question['type']
 export type AnswerRow = {
     questionId: string // UUID
     type: QuestionType
+    key: string
     valueText?: string | null
     valueNumber?: number | null
     valueOptionId?: string | null
@@ -34,7 +35,7 @@ function isAnswered(q: Question, v: unknown): boolean {
 }
 
 function buildAnswerRow(q: Question, raw: unknown): AnswerRow {
-    const base: AnswerRow = { questionId: q.id, type: q.type }
+    const base: AnswerRow = { questionId: q.id, type: q.type, key: q.key }
 
     switch (q.type) {
         case 'TEXT':

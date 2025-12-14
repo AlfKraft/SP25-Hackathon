@@ -10,12 +10,13 @@ import com.example.hackathonbe.hackathon.repository.QuestionnaireRepository;
 import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.StreamSupport;
 
 @Service
 public class QuestionnaireService {
@@ -24,15 +25,17 @@ public class QuestionnaireService {
     private final HackathonRepository hackathonRepository;
     private final ParticipantRepository participantRepository;
     private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
+    private final ObjectMapper objectMapper;
 
     public QuestionnaireService(QuestionnaireRepository questionnaireRepository,
                                 HackathonRepository hackathonRepository,
                                 ParticipantRepository participantRepository,
-                                QuestionnaireAnswerRepository questionnaireAnswerRepository) {
+                                QuestionnaireAnswerRepository questionnaireAnswerRepository, ObjectMapper objectMapper) {
         this.questionnaireRepository = questionnaireRepository;
         this.hackathonRepository = hackathonRepository;
         this.participantRepository = participantRepository;
         this.questionnaireAnswerRepository = questionnaireAnswerRepository;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -142,38 +145,96 @@ public class QuestionnaireService {
         return q.getQuestions();
     }
 
+    @Transactional
     public void submitAnswers(Long hackathonId, SubmitQuestionnaireAnswersDto dto) {
-        // 1. Resolve questionnaire by hackathonId
+
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + hackathonId));
-        // 2. Resolve participant by participantId
-        Participant participant = participantRepository.findById(dto.participantId())
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found: " + dto.participantId()));
-        // 3. Validate questionnaire is public (PUBLISHED/LOCKED)
-        Questionnaire questionnaire = getQuestionnaire(hackathonId, dto.questionnaireId(), hackathon);
-        // 4. Create or update QuestionnaireAnswer (one per questionnaire+participant)
-        QuestionnaireAnswer answer = questionnaireAnswerRepository
-                .findByQuestionnaireAndParticipant(questionnaire, participant)
+
+        // 1) Validate questionnaire status first (optional but usually better)
+        Questionnaire questionnaire = getQuestionnaire(hackathon);
+        validateQuestionnaireIsSubmittable(questionnaire); // implement your PUBLISHED/LOCKED rule
+
+        // 2) Normalize answers once
+        JsonNode answersNode = dto.answers();
+        if (answersNode == null || !answersNode.isArray()) {
+            throw new IllegalArgumentException("answers must be an array");
+        }
+
+        Map<String, JsonNode> byKey = toAnswerMap(answersNode);
+
+        // 3) Required fields (systemRequired)
+        String email = requireText(byKey, "email");
+        String firstName = requireText(byKey, "first_name");
+        String lastName = requireText(byKey, "last_name");
+
+        // 4) Find or create participant
+        Participant participant = participantRepository.findByEmail(email)
                 .orElseGet(() -> {
-                    QuestionnaireAnswer qa = new QuestionnaireAnswer();
-                    qa.setQuestionnaire(questionnaire);
-                    qa.setParticipant(participant);
-                    return qa;
+                    Participant p = new Participant();
+                    p.setEmail(email);
+                    p.setFirstName(firstName);
+                    p.setLastName(lastName);
+                    return participantRepository.save(p);
                 });
 
-        answer.setData(dto.answers());
-        // 5. Save via QuestionnaireAnswerRepository
-        questionnaireAnswerRepository.save(answer);
+        // 5) Ensure participant is registered to this hackathon (avoid duplicates)
+        if (!hackathon.getParticipants().contains(participant)) {
+            hackathon.addParticipant(participant);
+            hackathonRepository.save(hackathon);
+        }
+
+        // 6) Upsert questionnaire answers (1 per questionnaire+participant)
+        QuestionnaireAnswer qa = questionnaireAnswerRepository
+                .findByQuestionnaireAndParticipant(questionnaire, participant)
+                .orElseGet(() -> {
+                    QuestionnaireAnswer fresh = new QuestionnaireAnswer();
+                    fresh.setQuestionnaire(questionnaire);
+                    fresh.setParticipant(participant);
+                    return fresh;
+                });
+
+        qa.setData(answersNode); // or dto.answers()
+        questionnaireAnswerRepository.save(qa);
     }
 
-    private static Questionnaire getQuestionnaire(Long hackathonId, Long questionnaireId, Hackathon hackathon) {
-        Questionnaire questionnaire = hackathon.getQuestionnaire();
-        if (!questionnaire.getId().equals(questionnaireId)) {
-            throw new IllegalArgumentException("Questionnaire does not belong to hackathon: " + hackathonId);
+    /** Convert answers array into key -> answerNode. */
+    private Map<String, JsonNode> toAnswerMap(JsonNode answersArray) {
+        Map<String, JsonNode> map = new HashMap<>();
+        for (JsonNode a : answersArray) {
+            String key = a.path("key").asText(null);
+            if (key == null || key.isBlank()) continue;
+            map.put(key, a);
         }
+        return map;
+    }
+
+    /** Extract valueText (trimmed) and enforce presence. */
+    private String requireText(Map<String, JsonNode> byKey, String key) {
+        JsonNode node = byKey.get(key);
+        if (node == null) {
+            throw new IllegalArgumentException("Missing required answer: " + key);
+        }
+        String value = node.path("valueText").asText("").trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("Missing required answer: " + key);
+        }
+        return value;
+    }
+
+    private void validateQuestionnaireIsSubmittable(Questionnaire q) {
+        // example, adapt to your model:
+        if (!(q.getStatus() == QuestionnaireStatus.PUBLISHED || q.getStatus() == QuestionnaireStatus.LOCKED)) {
+            throw new IllegalStateException("Questionnaire is not open for submissions: " + q.getStatus());
+        }
+    }
+
+    private static Questionnaire getQuestionnaire(Hackathon hackathon) {
+        Questionnaire questionnaire = hackathon.getQuestionnaire();
+
         if (questionnaire.getSource() != QuestionnaireSource.INTERNAL &&
                 questionnaire.getStatus() != QuestionnaireStatus.PUBLISHED) {
-            throw new IllegalStateException("Questionnaire is not published for hackathon: " + hackathonId);
+            throw new IllegalStateException("Questionnaire is not published for hackathon: " + hackathon.getId());
         }
         return questionnaire;
     }
@@ -223,7 +284,7 @@ public class QuestionnaireService {
     public Questionnaire editQuestionnaire(Long hackathonId, Long questionnaireId, JsonNode questionsJson) {
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new IllegalArgumentException("Hackathon not found: " + hackathonId));
-        Questionnaire questionnaire = getQuestionnaire(hackathonId, questionnaireId, hackathon);
+        Questionnaire questionnaire = getQuestionnaire(hackathon);
 
         if (questionnaire.getSource() != QuestionnaireSource.INTERNAL) {
             throw new IllegalStateException("Only INTERNAL questionnaires can be edited");

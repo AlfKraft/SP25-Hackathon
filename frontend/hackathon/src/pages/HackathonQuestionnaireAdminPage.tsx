@@ -1,6 +1,6 @@
 // src/pages/HackathonQuestionnaireAdminPage.tsx
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { AlertCircle, FileText, Loader2, MessageSquareCode } from 'lucide-react'
@@ -46,6 +46,7 @@ interface QuestionnaireMeta {
 
 export default function HackathonQuestionnaireAdminPage() {
     const { id } = useParams<{ id: string }>()
+    const navigate = useNavigate()
     const hackathonId = Number(id)
     const [publishing, setPublishing] = useState(false)
     const [publishError, setPublishError] = useState<string | null>(null)
@@ -167,6 +168,23 @@ export default function HackathonQuestionnaireAdminPage() {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-8">
             {/* HEADER */}
             <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+                <button
+                    type="button"
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center gap-1 rounded-full border border-sky-500/40 bg-slate-900/70 px-2 py-1 text-xs text-sky-100 transition-all hover:border-sky-400 hover:bg-slate-800/90 hover:text-sky-50 disabled:opacity-60"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back
+                </button>
                 <div>
                     <h1 className="bg-gradient-to-r from-sky-200 via-cyan-200 to-indigo-300 bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
                         Hackathon questionnaire
