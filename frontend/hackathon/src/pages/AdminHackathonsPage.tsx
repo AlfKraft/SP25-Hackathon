@@ -198,6 +198,31 @@ export default function AdminHackathonsPage() {
             ...prev,
             [field]: value,
         }))
+
+        if (field === 'startDate' && typeof value === 'string' && value) {
+            const startDate = new Date(value)
+            const now = new Date()
+            if (startDate < now) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    startDate: 'Start date cannot be in the past',
+                }))
+                return
+            }
+        }
+
+        if (field === 'endDate' && typeof value === 'string' && value) {
+            const endDate = new Date(value)
+            const now = new Date()
+            if (endDate < now) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    endDate: 'End date cannot be in the past',
+                }))
+                return
+            }
+        }
+
         // Clear field-level error as user edits
         setFieldErrors(prev => {
             const next = { ...prev }

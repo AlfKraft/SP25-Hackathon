@@ -131,6 +131,30 @@ export default function HackathonEditPage() {
             [field]: value,
         }))
 
+        if (field === 'startDate' && value) {
+            const startDate = new Date(value)
+            const now = new Date()
+            if (startDate < now) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    startDate: 'Start date cannot be in the past',
+                }))
+                return
+            }
+        }
+
+        if (field === 'endDate' && value) {
+            const endDate = new Date(value)
+            const now = new Date()
+            if (endDate < now) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    endDate: 'End date cannot be in the past',
+                }))
+                return
+            }
+        }
+
         setFieldErrors(prev => {
             const next = { ...prev }
             delete next[field]
