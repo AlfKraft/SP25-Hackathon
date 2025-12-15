@@ -154,11 +154,9 @@ class QuestionnaireServiceTest {
 
         when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
 
-        // when
-        JsonNode json = questionnaireService.getPublicQuestionnaire(hackathonId);
+        assertThatThrownBy(() -> questionnaireService.getPublicQuestionnaire(hackathonId)).isInstanceOf(BadRequestException.class);
 
-        // then
-        assertThat(json).isNotNull();
+
     }
 
     @Test

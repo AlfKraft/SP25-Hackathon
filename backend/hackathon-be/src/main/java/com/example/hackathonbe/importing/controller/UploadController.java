@@ -5,6 +5,7 @@ import com.example.hackathonbe.importing.model.ImportRequest;
 import com.example.hackathonbe.importing.model.ImportSummary;
 import com.example.hackathonbe.importing.model.ValidationReport;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -39,7 +39,7 @@ public class Hackathon {
 
     private String bannerUrl;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "questionnaire_id")
     private Questionnaire questionnaire;
 

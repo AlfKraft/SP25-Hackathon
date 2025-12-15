@@ -214,31 +214,32 @@ export default function HackathonDetailsPage() {
                 </span>
                             </div>
                         </div>
+                        {hackathon.questionnaireSource === 'INTERNAL'&& (
+                            <div className="flex flex-col items-start justify-center gap-2 md:items-end">
+                                <p className="text-[11px] text-sky-100/70">Ready to join this hackathon?</p>
 
-                        <div className="flex flex-col items-start justify-center gap-2 md:items-end">
-                            <p className="text-[11px] text-sky-100/70">Ready to join this hackathon?</p>
+                                <Button
+                                    size="sm"
+                                    className="flex items-center gap-2 rounded-full bg-sky-500/90 px-5 text-sky-950 shadow-lg shadow-sky-500/40 hover:bg-sky-400"
+                                    onClick={handleSignUp}
+                                    disabled={ctaDisabled}
+                                >
+                                    <ClipboardList className="h-4 w-4" />
+                                    Join
+                                </Button>
 
-                            <Button
-                                size="sm"
-                                className="flex items-center gap-2 rounded-full bg-sky-500/90 px-5 text-sky-950 shadow-lg shadow-sky-500/40 hover:bg-sky-400"
-                                onClick={handleSignUp}
-                                disabled={ctaDisabled}
-                            >
-                                <ClipboardList className="h-4 w-4" />
-                                Join
-                            </Button>
+                                {hackathon.status === 'completed' && (
+                                    <p className="text-[11px] text-sky-100/60">
+                                        This hackathon has ended. Registration is closed.
+                                    </p>
+                                )}
 
-                            {hackathon.status === 'completed' && (
-                                <p className="text-[11px] text-sky-100/60">
-                                    This hackathon has ended. Registration is closed.
-                                </p>
-                            )}
-
-                            {/* Optional hint if you disable when questionnaire missing */}
-                            {/* {!hasOnsiteQuestionnaire && hackathon.status !== 'completed' && (
+                                {/* Optional hint if you disable when questionnaire missing */}
+                                {/* {!hasOnsiteQuestionnaire && hackathon.status !== 'completed' && (
                 <p className="text-[11px] text-sky-100/60">No questionnaire required.</p>
               )} */}
-                        </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-2">

@@ -80,7 +80,7 @@ public class UploadService {
                 .flatMap(row -> row.fields().keySet().stream())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        addUnknownHeaderErrors(parsedRows, presentKeys, topErrorCounts, cellErrors);
+        //addUnknownHeaderErrors(parsedRows, presentKeys, topErrorCounts, cellErrors);
         addMissingHeaderErrors(presentKeys, topErrorCounts, cellErrors);
 
         for (ParticipantPreviewRow parsedRow : parsedRows) {
@@ -156,6 +156,7 @@ public class UploadService {
         }
 
         JsonNode externalQuestionnaireJson = createExternalQuestionnaireJson(previewRows);
+        log.debug("External questionnaire JSON: {}", externalQuestionnaireJson.toString());
         Questionnaire questionnaire = questionnaireService.saveExternalQuestionnaire(hackathon, externalQuestionnaireJson);
 
         int total = previewRows.size();
@@ -248,20 +249,25 @@ public class UploadService {
         root.set("questions", questions);
 
         int questionIndex = 1;
-
+        List<CoreFieldKey> coreFieldKeys = new ArrayList<>();
         // Use keys, and map to header labels where needed
         for (String key : headerRow.keyToHeader().keySet()) {
             CoreFieldKey coreKey = CoreFieldKey.fromKey(key);
-            if (coreKey == null) {
-                continue;
-            }
-
             ObjectNode question = objectMapper.createObjectNode();
             question.put("id", UUID.randomUUID().toString());
+            if (coreKey != null) {
+                coreFieldKeys.add(coreKey);
+                question.put("label", coreKey.defaultLabel());
+                question.put("type", coreKey.defaultType());
+            } else {
+                question.put("label", key);
+                question.put("type", "UNKNOWN");
+            }
             question.put("key", key);
-            question.put("label", coreKey.defaultLabel());
-            question.put("type", coreKey.defaultType());
             questions.add(question);
+        }
+        if (coreFieldKeys.size() < Keys.REQUIRED_MIN.size()) {
+            throw new BadRequestException("Not enough core fields found in preview");
         }
 
         return root;
@@ -291,6 +297,7 @@ public class UploadService {
         }
     }
 
+    /*
     private void addUnknownHeaderErrors(
             List<ParticipantPreviewRow> parsedRows,
             Set<String> presentKeys,
@@ -321,6 +328,8 @@ public class UploadService {
             topErrorCounts.merge("UNKNOWN_HEADER", unknownCount, Long::sum);
         }
     }
+
+     */
 
     private void addMissingHeaderErrors(
             Set<String> presentKeys,
