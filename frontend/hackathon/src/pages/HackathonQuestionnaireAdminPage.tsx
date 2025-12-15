@@ -60,6 +60,7 @@ export default function HackathonQuestionnaireAdminPage() {
     const [error, setError] = useState<string | null>(null)
     const [meta, setMeta] = useState<QuestionnaireMeta | null>(null)
     const [activeTab, setActiveTab] = useState<'import' | 'builder'>('import')
+    const [refreshTrigger, setRefreshTrigger] = useState(0)
 
     useEffect(() => {
         if (!hackathonId) return
@@ -116,7 +117,7 @@ export default function HackathonQuestionnaireAdminPage() {
         }
 
         void loadMeta()
-    }, [hackathonId])
+    }, [hackathonId, refreshTrigger])
 
     const handlePublishToggle = async () => {
 
@@ -322,6 +323,7 @@ export default function HackathonQuestionnaireAdminPage() {
                             hackathonId={hackathonId}
                             meta={meta}
                             requiredFields={REQUIRED_MIN_FIELDS}
+                            onSave={() => setRefreshTrigger(prev => prev + 1)}
                         />
                     </TabsContent>
                 </Tabs>

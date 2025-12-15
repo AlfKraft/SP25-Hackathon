@@ -35,6 +35,7 @@ interface Props {
     hackathonId: number
     meta: QuestionnaireMeta | null
     requiredFields: string[]
+    onSave?: () => void
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
@@ -105,7 +106,7 @@ function prettifyKey(key: string): string {
     return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
 
-export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields }: Props) {
+export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields, onSave }: Props) {
     const isImported = meta?.sourceType === 'EXTERNAL_UPLOAD'
     const isPublished = meta?.status === 'PUBLISHED'
     const isLocked = isImported || isPublished
@@ -304,6 +305,7 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
             if (!res.ok) throw new Error(`Status ${res.status}`)
             setSaveStatus('saved')
             setTimeout(() => setSaveStatus('idle'), 2000)
+            onSave?.()
         } catch (err: any) {
             setSaveStatus('error')
             setErrorMsg(err?.message ?? 'Unknown error')
