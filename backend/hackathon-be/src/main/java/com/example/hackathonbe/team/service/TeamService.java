@@ -362,29 +362,23 @@ public class TeamService {
             return false;
         }
 
+        // Internal questionnaire: array format
         if (data.isArray()) {
             for (JsonNode answerItem : data) {
-                String key = answerItem.path("key").asText("");
-                if ("age_verification".equals(key)) {
+                if ("age_verification".equals(answerItem.path("key").asText(""))) {
+                    // Check valueBoolean first (set by frontend), fallback to valueText
                     JsonNode boolNode = answerItem.path("valueBoolean");
-                    if (!boolNode.isMissingNode() && !boolNode.isNull()) {
-                        return boolNode.asBoolean(false);
+                    if (boolNode.isBoolean()) {
+                        return boolNode.asBoolean();
                     }
-                    
-                    String value = answerItem.path("valueText").asText("");
-                    return value.toLowerCase().startsWith("yes");
+                    return answerItem.path("valueText").asText("").toLowerCase().startsWith("yes");
                 }
             }
             return false;
         }
 
-        JsonNode boolNode = data.path("age_verification_boolean");
-        if (!boolNode.isMissingNode() && !boolNode.isNull()) {
-            return boolNode.asBoolean(false);
-        }
-        
-        String value = data.path("age_verification").asText("");
-        return value.toLowerCase().startsWith("yes");
+        // External questionnaire: flat object format
+        return data.path("age_verification").asText("").toLowerCase().startsWith("yes");
     }
 
     private void deleteExistingTeams(Long hackathonId) {
