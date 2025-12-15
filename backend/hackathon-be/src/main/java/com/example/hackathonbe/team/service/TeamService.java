@@ -345,10 +345,40 @@ public class TeamService {
                 continue; // skip participants without answers
             }
 
+            if (!isOver18(questionnaireAnswer)) {
+                log.info("Skipping participant {} - not confirmed as 18 or older", participant.getId());
+                continue;
+            }
+
             candidates.add(Candidate.fromQuestionnaireAnswer(questionnaireAnswer));
         }
 
         return candidates;
+    }
+
+    private boolean isOver18(QuestionnaireAnswer questionnaireAnswer) {
+        JsonNode data = questionnaireAnswer.getData();
+        if (data == null) {
+            return false;
+        }
+
+        // Internal questionnaire: array format
+        if (data.isArray()) {
+            for (JsonNode answerItem : data) {
+                if ("age_verification".equals(answerItem.path("key").asText(""))) {
+                    // Check valueBoolean first (set by frontend), fallback to valueText
+                    JsonNode boolNode = answerItem.path("valueBoolean");
+                    if (boolNode.isBoolean()) {
+                        return boolNode.asBoolean();
+                    }
+                    return answerItem.path("valueText").asText("").toLowerCase().startsWith("yes");
+                }
+            }
+            return false;
+        }
+
+        // External questionnaire: flat object format
+        return data.path("age_verification").asText("").toLowerCase().startsWith("yes");
     }
 
     private void deleteExistingTeams(Long hackathonId) {

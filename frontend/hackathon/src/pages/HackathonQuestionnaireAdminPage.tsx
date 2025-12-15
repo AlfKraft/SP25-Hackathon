@@ -23,7 +23,9 @@ const REQUIRED_MIN_FIELDS = [
     'age',
     'gender',
     'education',
+    'employment',
     'years_experience',
+    'team_name',
 ]
 
 type QuestionnaireSourceType = 'INTERNAL' | 'EXTERNAL_UPLOAD'
