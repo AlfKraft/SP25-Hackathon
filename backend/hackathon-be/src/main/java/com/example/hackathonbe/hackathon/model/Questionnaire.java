@@ -7,7 +7,9 @@ import lombok.*;
 import org.hibernate.annotations.Type;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "questionnaire")
@@ -30,4 +32,11 @@ public class Questionnaire {
     @Type(JsonType.class)
     @Column(columnDefinition = "jsonb", nullable = false)
     private JsonNode questions;
+
+    @OneToMany(
+            mappedBy = "questionnaire",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<QuestionnaireAnswer> answers = new HashSet<>();
 }

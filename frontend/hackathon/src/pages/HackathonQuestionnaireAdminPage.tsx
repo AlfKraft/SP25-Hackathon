@@ -134,7 +134,6 @@ export default function HackathonQuestionnaireAdminPage() {
                 const text = await res.text()
                 throw new Error(text || `Failed to publish (status ${res.status})`)
             }
-            await refreshHackathons()
             const data: PublishedDto = await res.json()
 
             setPublished(data.status === 'PUBLISHED')
@@ -142,6 +141,7 @@ export default function HackathonQuestionnaireAdminPage() {
             setMeta(prev =>
                 prev ? { ...prev, status: data.status } : prev
             )
+            await refreshHackathons()
         } catch (e: any) {
             console.error(e)
             setPublishError(e?.message ?? 'Failed to publish questionnaire')

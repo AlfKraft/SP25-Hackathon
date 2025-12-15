@@ -177,6 +177,9 @@ public class QuestionnaireService {
         if (q.getSource() == QuestionnaireSource.INTERNAL && q.getStatus() != QuestionnaireStatus.PUBLISHED) {
             throw new BadRequestException("Questionnaire is not published for hackathon: " + hackathonId);
         }
+        if (q.getSource() == QuestionnaireSource.EXTERNAL_UPLOAD) {
+            throw new BadRequestException("External don't have internal questionnaires to fill");
+        }
 
         return q.getQuestions();
     }

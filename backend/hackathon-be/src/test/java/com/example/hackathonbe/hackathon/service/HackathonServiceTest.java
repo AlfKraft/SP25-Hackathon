@@ -3,8 +3,7 @@ package com.example.hackathonbe.hackathon.service;
 import com.example.hackathonbe.common.exceptions.BadRequestException;
 import com.example.hackathonbe.common.exceptions.NotFoundException;
 import com.example.hackathonbe.hackathon.dto.HackathonResponse;
-import com.example.hackathonbe.hackathon.model.Hackathon;
-import com.example.hackathonbe.hackathon.model.HackathonStatus;
+import com.example.hackathonbe.hackathon.model.*;
 import com.example.hackathonbe.hackathon.repository.HackathonRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -103,6 +102,10 @@ class HackathonServiceTest {
     }
 
     private Hackathon createHackathon(Long id, String name, HackathonStatus status) {
+        Questionnaire q = new Questionnaire();
+        q.setId(1L);
+        q.setSource(QuestionnaireSource.INTERNAL);
+        q.setStatus(QuestionnaireStatus.PUBLISHED);
         Hackathon h = new Hackathon();
         h.setId(id);
         h.setName(name);
@@ -111,6 +114,7 @@ class HackathonServiceTest {
         h.setStatus(status);
         h.setStartDate(LocalDateTime.now().plusDays(1));
         h.setEndDate(LocalDateTime.now().plusDays(7));
+        h.setQuestionnaire(q);
         return h;
     }
 }

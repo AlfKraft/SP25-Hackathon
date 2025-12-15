@@ -3,6 +3,7 @@ package com.example.hackathonbe.hackathon.controller;
 import com.example.hackathonbe.auth.security.JwtAuthenticationFilter;
 import com.example.hackathonbe.hackathon.dto.HackathonResponse;
 import com.example.hackathonbe.hackathon.model.HackathonStatus;
+import com.example.hackathonbe.hackathon.model.QuestionnaireSource;
 import com.example.hackathonbe.hackathon.service.HackathonService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +64,8 @@ class HackathonControllerTest {
                 "Tartu",
                 LocalDateTime.of(2025, 1, 10, 9, 0),
                 LocalDateTime.of(2025, 1, 12, 18, 0),
-                HackathonStatus.OPEN
+                HackathonStatus.OPEN,
+                QuestionnaireSource.INTERNAL
         );
     }
 }

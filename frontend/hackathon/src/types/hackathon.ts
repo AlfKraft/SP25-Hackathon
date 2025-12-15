@@ -52,4 +52,5 @@ export interface Hackathon {
   participants: Participant[];
   maxParticipants: number;
   status: 'upcoming' | 'active' | 'completed';
+  questionnaireSource: 'EXTERNAL_UPLOAD' | 'INTERNAL';
 }
