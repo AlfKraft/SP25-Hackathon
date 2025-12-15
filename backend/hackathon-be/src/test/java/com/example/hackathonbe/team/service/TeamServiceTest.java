@@ -169,6 +169,30 @@ class TeamServiceTest {
         verify(teamMemberRepository, never()).save(any());
     }
 
+    @Test
+    void generateTeams_under18Candidates_areSkippedAndNotPersisted() {
+        Long hackathonId = 2L;
+
+        Hackathon hackathon = mock(Hackathon.class);
+        Questionnaire questionnaire = mock(Questionnaire.class);
+
+        Participant underage = mockParticipant(10L);
+
+        when(hackathonRepository.findById(hackathonId)).thenReturn(Optional.of(hackathon));
+        when(hackathon.getQuestionnaire()).thenReturn(questionnaire);
+        when(hackathon.getParticipants()).thenReturn(Set.of(underage));
+
+        QuestionnaireAnswer underageAnswer = mockAnswer(underage, "Under", "Age", "dev", 6, 1, "java", false);
+        when(questionnaireAnswerRepository.findByQuestionnaireAndParticipant(questionnaire, underage))
+                .thenReturn(Optional.of(underageAnswer));
+
+        UUID generationId = teamService.generateTeams(3, hackathonId);
+
+        assertThat(generationId).isNotNull();
+        verify(teamRepository, never()).save(any(Team.class));
+        verify(teamMemberRepository, never()).save(any(TeamMember.class));
+    }
+
     private Participant mockParticipant(Long id) {
         Participant participant = mock(Participant.class);
         when(participant.getId()).thenReturn(id);
@@ -184,6 +208,19 @@ class TeamServiceTest {
             int yearsExperience,
             String skills
     ) {
+        return mockAnswer(participant, firstName, lastName, role, motivation, yearsExperience, skills, true);
+    }
+
+    private QuestionnaireAnswer mockAnswer(
+            Participant participant,
+            String firstName,
+            String lastName,
+            String role,
+            int motivation,
+            int yearsExperience,
+            String skills,
+            boolean ageVerified
+    ) {
         QuestionnaireAnswer answer = mock(QuestionnaireAnswer.class);
 
         ObjectNode node = objectMapper.createObjectNode();
@@ -193,8 +230,9 @@ class TeamServiceTest {
         node.put("motivation", motivation);
         node.put("years_experience", yearsExperience);
         node.put("skills", skills);
+        node.put("age_verification", ageVerified ? "yes" : "no");
 
-        when(answer.getParticipant()).thenReturn(participant);
+        lenient().when(answer.getParticipant()).thenReturn(participant);
         when(answer.getData()).thenReturn(node);
         return answer;
     }
