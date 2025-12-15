@@ -288,7 +288,6 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
         requiredFields.length > 0 &&
         !requiredFields.every(reqKey => questions.some(q => q.key === reqKey && q.required))
 
-        console.log(questions)
     const handleSave = async () => {
         setSaveStatus('saving')
         setErrorMsg(null)
