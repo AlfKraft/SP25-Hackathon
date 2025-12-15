@@ -345,7 +345,6 @@ public class TeamService {
                 continue; // skip participants without answers
             }
 
-            // Skip participants who are not 18 or older
             if (!isOver18(questionnaireAnswer)) {
                 log.info("Skipping participant {} - not confirmed as 18 or older", participant.getId());
                 continue;
@@ -357,37 +356,28 @@ public class TeamService {
         return candidates;
     }
 
-    /**
-     * Checks if the participant confirmed they are 18 or older based on the age_verification question.
-     * Returns true if they answered "Yes", false otherwise.
-     */
     private boolean isOver18(QuestionnaireAnswer questionnaireAnswer) {
         JsonNode data = questionnaireAnswer.getData();
         if (data == null) {
             return false;
         }
 
-        // Internal questionnaire: array of answers with key/valueBoolean/valueText
         if (data.isArray()) {
             for (JsonNode answerItem : data) {
                 String key = answerItem.path("key").asText("");
                 if ("age_verification".equals(key)) {
-                    // Prefer valueBoolean if available (cleaner check)
                     JsonNode boolNode = answerItem.path("valueBoolean");
                     if (!boolNode.isMissingNode() && !boolNode.isNull()) {
                         return boolNode.asBoolean(false);
                     }
                     
-                    // Fallback to valueText check
                     String value = answerItem.path("valueText").asText("");
                     return value.toLowerCase().startsWith("yes");
                 }
             }
-            // If age_verification question not found, default to excluding them
             return false;
         }
 
-        // External questionnaire: flat object - check boolean first, then text
         JsonNode boolNode = data.path("age_verification_boolean");
         if (!boolNode.isMissingNode() && !boolNode.isNull()) {
             return boolNode.asBoolean(false);

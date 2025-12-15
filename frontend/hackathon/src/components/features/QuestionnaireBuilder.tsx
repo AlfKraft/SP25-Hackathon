@@ -9,6 +9,7 @@ import type {
     QuestionKind,
     SingleChoiceQuestion,
     MultiChoiceQuestion,
+    TextQuestion,
 } from '@/types/questionnaire'
 import { QuestionCardShell } from '@/components/questionnaire/QuestionCardShell'
 import { TextQuestionEditor } from '@/components/questionnaire/TextQuestionEditor'
@@ -152,6 +153,20 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                         { id: createId(), label: 'Other' },
                     ],
                 } satisfies SingleChoiceQuestion
+            }
+
+            if (key === 'team_name') {
+                return {
+                    id: createId(),
+                    key: 'team_name',
+                    label: 'If you are already part of a team, please write the name of your team below.',
+                    type: 'TEXT',
+                    required: true,
+                    description: 'Please make sure you and your team members use the same team name.',
+                    systemRequired: true,
+                    order: index + 1,
+                    maxLength: 255,
+                } satisfies TextQuestion
             }
 
             const numericKeys = new Set(['age', 'years_experience'])

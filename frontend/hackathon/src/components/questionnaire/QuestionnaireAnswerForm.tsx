@@ -57,11 +57,9 @@ function buildAnswerRow(q: Question, raw: unknown): AnswerRow {
 
         case 'SINGLE_CHOICE': {
             const selectedOptionId = raw ? String(raw) : null
-            // Find the selected option's label text
             const selectedOption = q.options.find(opt => opt.id === selectedOptionId)
             const labelText = selectedOption?.label ?? null
             
-            // For age_verification question, also set valueBoolean
             let valueBoolean: boolean | null = null
             if (q.key === 'age_verification' && labelText) {
                 valueBoolean = labelText.toLowerCase().startsWith('yes')
