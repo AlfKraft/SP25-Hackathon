@@ -87,12 +87,45 @@ public class UploadService {
             Map<String, String> fields = parsedRow.fields();
             boolean rowValid = true;
 
+            // Required string fields validation
+            for (String requiredField : List.of("first_name", "last_name", "email", "role", "gender", "education")) {
+                String value = nullToEmpty(fields.get(requiredField));
+                if (value.isBlank()) {
+                    increment(topErrorCounts, "MISSING_VALUE:" + requiredField);
+                    cellErrors.add(cell(parsedRow, requiredField, "MISSING_VALUE:" + requiredField, value));
+                    rowValid = false;
+                }
+            }
+
             // Email validation (invalid email -> invalid row)
             String email = nullToEmpty(fields.get("email"));
             if (!email.isBlank() && !EmailValidator.getInstance().isValid(email)) {
                 increment(topErrorCounts, "INVALID_EMAIL");
                 cellErrors.add(cell(parsedRow, "email", "INVALID_EMAIL", email));
                 rowValid = false;
+            }
+
+            // Required numeric fields validation
+            for (String numericField : List.of("motivation", "age", "years_experience")) {
+                String value = nullToEmpty(fields.get(numericField));
+                if (value.isBlank()) {
+                    increment(topErrorCounts, "MISSING_VALUE:" + numericField);
+                    cellErrors.add(cell(parsedRow, numericField, "MISSING_VALUE:" + numericField, value));
+                    rowValid = false;
+                } else {
+                    // Check if it's a valid number
+                    try {
+                        if (value.contains(".")) {
+                            Double.parseDouble(value.trim());
+                        } else {
+                            Long.parseLong(value.trim());
+                        }
+                    } catch (NumberFormatException e) {
+                        increment(topErrorCounts, "INVALID_VALUE:" + numericField);
+                        cellErrors.add(cell(parsedRow, numericField, "INVALID_VALUE:" + numericField, value));
+                        rowValid = false;
+                    }
+                }
             }
 
             // motivation: integer 0..100 (your current constraints)
@@ -106,6 +139,13 @@ public class UploadService {
                     cellErrors.add(cell(parsedRow, "motivation", "INVALID_VALUE:motivation", motivationText));
                     rowValid = false;
                 }
+            }
+            
+            String skills = nullToEmpty(fields.get("skills"));
+            if (skills.isBlank()) {
+                increment(topErrorCounts, "MISSING_VALUE:skills");
+                cellErrors.add(cell(parsedRow, "skills", "MISSING_VALUE:skills", skills));
+                rowValid = false;
             }
 
             normalizedRows.add(new ParticipantPreviewRow(

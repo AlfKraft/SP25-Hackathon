@@ -85,6 +85,7 @@ public final class ParticipantJson {
     }
     private static void reqA(ObjectNode n, String k, List<String> errs){
         if (!n.has(k)) { errs.add(k+" is required"); return; }
-        if (!n.get(k).isArray()) errs.add(k+" must be an array");
+        if (!n.get(k).isArray()) { errs.add(k+" must be an array"); return; }
+        if (n.get(k).isEmpty()) errs.add(k+" must not be empty");
     }
 }

@@ -458,8 +458,14 @@ export default function QuestionnaireImportSection({
                                 </div>
                                 <p className="text-[11px] text-sky-300/70">
                                     Fix the issues in your source file and re-upload if necessary. Once
-                                    you’re satisfied, proceed to import.
+                                    you’re satisfied, proceed to import. 
                                 </p>
+                                <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-500/50 bg-rose-500/15 px-3 py-2.5">
+                                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-300" />
+                                    <p className="text-xs font-medium text-rose-100">
+                                        <span className="font-semibold">Important:</span> Participants with invalid or missing data will not be added to the hackathon. Make sure all entries are corrected before importing.
+                                    </p>
+                                </div>
                             </div>
                         )}
                     </div>
