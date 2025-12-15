@@ -14,6 +14,7 @@ export type AnswerRow = {
     key: string
     valueText?: string | null
     valueNumber?: number | null
+    valueBoolean?: boolean | null
     valueOptionId?: string | null
     valueOptionIds?: string[] | null
 }
@@ -41,6 +42,9 @@ function buildAnswerRow(q: Question, raw: unknown): AnswerRow {
         case 'TEXT':
             return { ...base, valueText: (raw ?? '').toString() }
 
+        case 'LONG_TEXT':
+            return { ...base, valueText: (raw ?? '').toString() }
+
         case 'NUMBER_INPUT': {
             const s = (raw ?? '').toString().trim()
             return { ...base, valueNumber: s ? Number(s) : null }
@@ -51,8 +55,25 @@ function buildAnswerRow(q: Question, raw: unknown): AnswerRow {
             return { ...base, valueNumber: Number.isFinite(n) ? n : null }
         }
 
-        case 'SINGLE_CHOICE':
-            return { ...base, valueOptionId: raw ? String(raw) : null }
+        case 'SINGLE_CHOICE': {
+            const selectedOptionId = raw ? String(raw) : null
+            // Find the selected option's label text
+            const selectedOption = q.options.find(opt => opt.id === selectedOptionId)
+            const labelText = selectedOption?.label ?? null
+            
+            // For age_verification question, also set valueBoolean
+            let valueBoolean: boolean | null = null
+            if (q.key === 'age_verification' && labelText) {
+                valueBoolean = labelText.toLowerCase().startsWith('yes')
+            }
+            
+            return { 
+                ...base, 
+                valueOptionId: selectedOptionId,
+                valueText: labelText,
+                valueBoolean 
+            }
+        }
 
         case 'MULTI_CHOICE':
             return { ...base, valueOptionIds: Array.isArray(raw) ? (raw as string[]) : [] }

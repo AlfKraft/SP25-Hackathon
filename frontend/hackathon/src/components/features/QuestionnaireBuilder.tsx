@@ -108,9 +108,52 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
     const isImported = meta?.sourceType === 'EXTERNAL_UPLOAD'
     const isPublished = meta?.status === 'PUBLISHED'
     const isLocked = isImported || isPublished
-    // Default: build required core fields
-    const [questions, setQuestions] = useState<Question[]>(() =>
-        requiredFields.map((key, index) => {
+    // Default: build required core fields + age verification question
+    const [questions, setQuestions] = useState<Question[]>(() => {
+        const coreQuestions = requiredFields.map((key, index) => {
+            if (key === 'education') {
+                return {
+                    id: createId(),
+                    key: 'education',
+                    label: 'What is the highest level of formal education that you have completed until now?',
+                    type: 'SINGLE_CHOICE',
+                    required: true,
+                    description: 'Choose one of the following answers',
+                    systemRequired: true,
+                    order: index + 1,
+                    randomizeOptions: false,
+                    options: [
+                        { id: createId(), label: 'High school diploma' },
+                        { id: createId(), label: 'Bachelor degree' },
+                        { id: createId(), label: 'Master degree' },
+                        { id: createId(), label: 'Doctorate' },
+                        { id: createId(), label: 'Prefer not to say' },
+                        { id: createId(), label: 'Other' },
+                    ],
+                } satisfies SingleChoiceQuestion
+            }
+
+            if (key === 'employment') {
+                return {
+                    id: createId(),
+                    key: 'employment',
+                    label: 'What is your current employment?',
+                    type: 'SINGLE_CHOICE',
+                    required: true,
+                    description: 'Choose one of the following answers',
+                    systemRequired: true,
+                    order: index + 1,
+                    randomizeOptions: false,
+                    options: [
+                        { id: createId(), label: 'Self-employed' },
+                        { id: createId(), label: 'Employee at a company' },
+                        { id: createId(), label: 'Unemployed' },
+                        { id: createId(), label: 'Prefer not to say' },
+                        { id: createId(), label: 'Other' },
+                    ],
+                } satisfies SingleChoiceQuestion
+            }
+
             const numericKeys = new Set(['age', 'years_experience'])
             const kind: QuestionKind = numericKeys.has(key) ? 'NUMBER_INPUT' :  key === 'motivation' ? 'NUMBER_SLIDER' : 'TEXT'
 
@@ -123,8 +166,26 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                 required: true,
                 systemRequired: true,
             }
-        }),
-    )
+        })
+
+        const ageVerificationQuestion: SingleChoiceQuestion = {
+            id: createId(),
+            key: 'age_verification',
+            label: 'Are you 18 years of age or older?',
+            type: 'SINGLE_CHOICE',
+            required: true,
+            description: 'I am age 18 or older, I have read and understood the previous information and I wish to continue with the hackathon registration. Please only answer "yes" if you agree to all of the aforementioned purpose and use of your data. Answering "no" will still allow you to register for the hackathon, but we will not process your data to support team formation before the hackathon, nor to support entrepreneurial intention.',
+            systemRequired: true,
+            order: coreQuestions.length + 1,
+            randomizeOptions: false,
+            options: [
+                { id: createId(), label: 'Yes, I am 18 or older' },
+                { id: createId(), label: 'No, I am under 18' },
+            ],
+        }
+
+        return [...coreQuestions, ageVerificationQuestion]
+    })
 
     const [initializedFromMeta, setInitializedFromMeta] = useState(false)
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -212,6 +273,7 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
         requiredFields.length > 0 &&
         !requiredFields.every(reqKey => questions.some(q => q.key === reqKey && q.required))
 
+        console.log(questions)
     const handleSave = async () => {
         setSaveStatus('saving')
         setErrorMsg(null)

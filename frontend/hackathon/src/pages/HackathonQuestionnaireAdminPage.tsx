@@ -23,6 +23,7 @@ const REQUIRED_MIN_FIELDS = [
     'age',
     'gender',
     'education',
+    'employment',
     'years_experience',
 ]
 
