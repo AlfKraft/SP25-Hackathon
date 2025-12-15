@@ -161,7 +161,7 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                     key: 'team_name',
                     label: 'If you are already part of a team, please write the name of your team below.',
                     type: 'TEXT',
-                    required: true,
+                    required: false,
                     description: 'Please make sure you and your team members use the same team name.',
                     systemRequired: true,
                     order: index + 1,
