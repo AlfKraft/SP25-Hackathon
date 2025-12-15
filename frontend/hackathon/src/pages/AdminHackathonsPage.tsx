@@ -221,6 +221,28 @@ export default function AdminHackathonsPage() {
                 }))
                 return
             }
+            if (formValues.startDate) {
+                const startDate = new Date(formValues.startDate)
+                if (endDate < startDate) {
+                    setFieldErrors(prev => ({
+                        ...prev,
+                        endDate: 'End date cannot be before start date',
+                    }))
+                    return
+                }
+            }
+        }
+
+        if (field === 'startDate' && typeof value === 'string' && value && formValues.endDate) {
+            const startDate = new Date(value)
+            const endDate = new Date(formValues.endDate)
+            if (startDate > endDate) {
+                setFieldErrors(prev => ({
+                    ...prev,
+                    startDate: 'Start date cannot be after end date',
+                }))
+                return
+            }
         }
 
         // Clear field-level error as user edits
