@@ -4,7 +4,7 @@ import com.example.hackathonbe.hackathon.model.Questionnaire;
 import com.example.hackathonbe.hackathon.model.QuestionnaireAnswer;
 import com.example.hackathonbe.participant.model.Participant;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.util.List;
 import java.util.Optional;
 
 public interface QuestionnaireAnswerRepository extends JpaRepository<QuestionnaireAnswer, Long> {
@@ -13,4 +13,6 @@ public interface QuestionnaireAnswerRepository extends JpaRepository<Questionnai
             Questionnaire questionnaire,
             Participant participant
     );
+
+    List<QuestionnaireAnswer> findAllByQuestionnaire(Questionnaire questionnaire);
 }
