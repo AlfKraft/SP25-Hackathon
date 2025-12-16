@@ -14,6 +14,7 @@ import HackathonTeamsPage from "@/pages/HackathonTeamsPage.tsx";
 import HackathonEditPage from "@/pages/HackathonEditPage.tsx";
 import HackathonDetailsPage from "@/pages/HackathonDetailsPage.tsx";
 import HackathonQuestionnairePage from "@/pages/HackathonQuestionnairePage.tsx";
+import AnswersPage from "@/pages/AnswersPage.tsx";
 
 function App() {
     return (
@@ -42,6 +43,7 @@ function App() {
 
                             {/* Protected-ish views (you can guard them later) */}
                             <Route path="/admin/hackathons/:id/participants" element={<ParticipantsPage />} />
+                            <Route path="/admin/hackathons/:id/answers" element={<AnswersPage />} />
                             <Route path="/team-builder" element={<TeambuilderPage />} />
                         </Routes>
                     </main>

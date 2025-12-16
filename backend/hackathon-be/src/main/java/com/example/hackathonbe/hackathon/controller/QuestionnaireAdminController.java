@@ -1,5 +1,6 @@
 package com.example.hackathonbe.hackathon.controller;
 
+import com.example.hackathonbe.hackathon.dto.ParticipantAnswerDto;
 import com.example.hackathonbe.hackathon.dto.PublishDto;
 import com.example.hackathonbe.hackathon.dto.QuestionnaireDto;
 import com.example.hackathonbe.hackathon.model.Questionnaire;
@@ -8,6 +9,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/hackathons/{hackathonId}/questionnaire")
@@ -53,5 +56,14 @@ public class QuestionnaireAdminController {
     ) {
         Questionnaire q = questionnaireService.editQuestionnaire(hackathonId, questionnaireId, questionsJson);
         return ResponseEntity.ok(q.getQuestions());
+    }
+
+    /**
+     * Get all submitted answers for this hackathon's questionnaire.
+     * Returns participant info along with their answer data.
+     */
+    @GetMapping("/answers")
+    public ResponseEntity<List<ParticipantAnswerDto>> getAllAnswers(@PathVariable Long hackathonId) {
+        return ResponseEntity.ok(questionnaireService.getAllAnswers(hackathonId));
     }
 }
