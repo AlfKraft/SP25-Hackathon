@@ -234,6 +234,7 @@ public class QuestionnaireService {
                 });
 
         qa.setData(answersNode);
+        qa.setConsent(dto.consent());
         questionnaireAnswerRepository.save(qa);
     }
 

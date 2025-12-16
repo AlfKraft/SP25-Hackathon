@@ -1,14 +1,19 @@
-// src/pages/HackathonQuestionnairePage.tsx
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate  } from 'react-router-dom'
 import { API_URL } from '@/lib/config'
 import type { Question } from '@/types/questionnaire'
 import { type AnswerRow, QuestionnaireAnswerForm } from '@/components/questionnaire/QuestionnaireAnswerForm'
 import { Button } from '@/components/ui/button'
+import { IntroCard } from '@/components/questionnaire/IntroCard'
+import { ConsentCard, type ConsentValue } from '@/components/questionnaire/ConsentCard'
+import {readApiError} from "@/types/apiError.ts";
+import {ErrorAlert} from "@/components/common/ErrorAlert.tsx";
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'
+type Step = 1 | 2 | 3
 
 export default function HackathonQuestionnairePage() {
+    const navigate = useNavigate()
     const params = useParams()
     const hackathonId = useMemo(() => {
         const raw = params.hackathonId
@@ -21,9 +26,12 @@ export default function HackathonQuestionnairePage() {
     const [loadError, setLoadError] = useState<string | null>(null)
     const [submitError, setSubmitError] = useState<string | null>(null)
 
-    // ✅ NEW
     const [submitted, setSubmitted] = useState(false)
-    const [showFullIntro, setShowFullIntro] = useState(false)
+
+    // ✅ NEW stepper state
+    const [step, setStep] = useState<Step>(1)
+    const [consent, setConsent] = useState<ConsentValue | null>(null)
+
     useEffect(() => {
         if (!hackathonId) {
             setState('error')
@@ -44,8 +52,7 @@ export default function HackathonQuestionnairePage() {
                 })
 
                 if (!res.ok) {
-                    const text = await res.text().catch(() => '')
-                    throw new Error(text || `Failed to load questionnaire (status ${res.status})`)
+                    throw new Error(await readApiError(res))
                 }
 
                 const data = await res.json()
@@ -69,6 +76,21 @@ export default function HackathonQuestionnairePage() {
         }
     }, [hackathonId])
 
+    const handleBack = () => {
+        // If user is in the internal flow, go back within the flow
+        if (!submitted && state === 'ready') {
+            if (step === 3) return setStep(2)
+            if (step === 2) return setStep(1)
+        }
+
+        // Otherwise go back to previous page if possible
+        if (window.history.length > 1) {
+            navigate(-1)
+        } else {
+            navigate('/') // fallback (hackathons list)
+        }
+    }
+
     async function handleSubmit({ answers }: { answers: AnswerRow[] }) {
         if (!hackathonId) return
         setSubmitError(null)
@@ -78,19 +100,21 @@ export default function HackathonQuestionnairePage() {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ answers }),
+                body: JSON.stringify({
+                    answers,
+                    // Optional: include consent in payload if your backend wants it
+                    consent: consent === 'YES' ? true : consent === 'NO' ? false : undefined
+                }),
             })
 
             if (!res.ok) {
-                const text = await res.text().catch(() => '')
-                throw new Error(text || `Submit failed (status ${res.status})`)
+                throw new Error(await readApiError(res))
             }
 
-            // ✅ NEW: hide everything else after success
             setSubmitted(true)
         } catch (e: any) {
             setSubmitError(e?.message ?? 'Failed to submit questionnaire.')
-            throw e // keep form's internal error handling working
+            throw e
         }
     }
 
@@ -109,9 +133,7 @@ export default function HackathonQuestionnairePage() {
         return (
             <div className="mx-auto max-w-2xl space-y-3">
                 <h1 className="text-lg font-semibold text-slate-50">Hackathon questionnaire</h1>
-                <div className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-4 text-sm text-rose-200">
-                    {loadError ?? 'Something went wrong.'}
-                </div>
+                {loadError && <ErrorAlert message={loadError} />}
                 <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm">
                         <Link to="/">Back to hackathons</Link>
@@ -121,82 +143,81 @@ export default function HackathonQuestionnairePage() {
         )
     }
 
-    // ✅ NEW: after successful submit, show ONLY the green card
     if (submitted) {
         return (
             <div className="mx-auto max-w-2xl">
+                <div className="flex items-start justify-between gap-3 mb-4 md:mb-6">
+                    <div className="space-y-1">
+                        <h1 className="text-lg font-semibold text-slate-50">Hackathon questionnaire</h1>
+                    </div>
+
+                    <Button variant="outline" size="sm" className="shrink-0" onClick={handleBack}>
+                        Back
+                    </Button>
+                </div>
                 <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-emerald-100">
                     <div className="text-sm font-semibold">Submitted ✅</div>
                     <p className="mt-1 text-sm text-emerald-100/90">
-                        Your questionnaire answers have been submitted. If you want to change your answers,
-                        please fill the form again with the same email and submit one more time.
+                        Your questionnaire answers have been submitted. If you want to change your answers, please fill
+                        the form again with the same email and submit one more time.
                     </p>
                 </div>
             </div>
         )
     }
 
-    // ready (normal form view)
     return (
         <div className="mx-auto max-w-2xl space-y-4">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                     <h1 className="text-lg font-semibold text-slate-50">Hackathon questionnaire</h1>
-                    <p className="text-xs text-slate-300">
-                        Please answer the questions below. Required fields must be filled in.
-                    </p>
+                    <p className="text-xs text-slate-300">Please answer the questions below. Required fields must be filled in.</p>
                 </div>
 
-                <Button asChild variant="outline" size="sm" className="shrink-0">
-                    <Link to="/">Back</Link>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={handleBack}>
+                    Back
                 </Button>
             </div>
 
-            {/* Introduction / Instructions Card */}
-            <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5 text-sm text-slate-300 space-y-4">
-                <p className="font-medium text-slate-100">Dear participant,</p>
-                <p>
-                    Please fill in the following form to register for the hackathon.
-                </p>
+            {/* STEP 1: FULL intro + Agree */}
+            {step === 1 && (
+                <IntroCard onAgree={() => setStep(2)} />
+            )}
 
-                {showFullIntro && (
-                    <>
-                        <p>
-                            The questions address your motivations to participate, your skillset, team, and idea. We will use this data to know how many participants are motivated by entrepreneurship and how many have startup ideas and help them form teams with other participants who are also motivated by entrepreneurship.
-                        </p>
-                        <p>
-                            The form also has questions regarding basic demographic information (age, gender, nationality, meal preference, current employment and education) to ensure there are enough resources for all participants involved.
-                        </p>
-                        <p>
-                            Finally, we ask for your name and email to contact you regarding updates about your registration, the event, and potential team members who have similar motivations as you. If you already have a team, we ask the team leader for your names so we can know which team everyone belongs to.
-                        </p>
-                        <p>
-                            We will store this data in a safe and confidential environment for up to 5 years after the hackathon ends. You are always welcome to contact us to modify it or erase it. Please remember that participation in the hackathon is voluntary and that you have the right to withdraw at any time. You are free to decline to answer any particular question you do not wish to answer for any reason. This hackathon is an inclusive and safe event. All communication during the hackathon should be respectful. We do not tolerate harassment of hackathon participants in any form. Participants violating these rules may be sanctioned or expelled from the hackathon.
-                        </p>
-                    </>
-                )}
+            {/* STEP 2: Consent Yes/No + Prev/Next */}
+            {step === 2 && (
+                <ConsentCard
+                    value={consent}
+                    onChange={setConsent}
+                    onPrev={() => setStep(1)}
+                    onNext={() => setStep(3)}
+                />
+            )}
 
-                <button
-                    type="button"
-                    onClick={() => setShowFullIntro(!showFullIntro)}
-                    className="text-xs text-sky-400 hover:text-sky-300 hover:underline transition-colors"
-                >
-                    {showFullIntro ? 'Show less ↑' : 'Read more ↓'}
-                </button>
-            </div>
-
-            {questions.length === 0 ? (
-                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-200">
-                    No questionnaire has been published for this hackathon.
-                </div>
-            ) : (
+            {/* STEP 3: Questionnaire */}
+            {step === 3 && (
                 <>
-                    <QuestionnaireAnswerForm questions={questions} onSubmit={handleSubmit} />
-
-                    {submitError && (
-                        <div className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-3 text-xs text-rose-200">
-                            {submitError}
+                    {questions.length === 0 ? (
+                        <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-200">
+                            No questionnaire has been published for this hackathon.
                         </div>
+                    ) : (
+                        <>
+                            <QuestionnaireAnswerForm questions={questions} onSubmit={handleSubmit} />
+
+                            {submitError && (
+                                <div className="rounded-lg border border-rose-500/20 bg-rose-950/20 p-3 text-xs text-rose-200">
+                                    {submitError}
+                                </div>
+                            )}
+
+                            {/* Optional: allow going back to consent from step 3 */}
+                            <div className="flex justify-start">
+                                <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                                    Previous
+                                </Button>
+                            </div>
+                        </>
                     )}
                 </>
             )}

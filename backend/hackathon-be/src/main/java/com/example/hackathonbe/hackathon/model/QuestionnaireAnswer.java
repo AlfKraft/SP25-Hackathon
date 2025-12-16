@@ -49,4 +49,7 @@ public class QuestionnaireAnswer {
     @Column(name = "data", nullable = false, columnDefinition = "jsonb")
     private JsonNode data;
 
+    @Column(name = "consent", nullable = false)
+    private boolean consent;
+
 }
