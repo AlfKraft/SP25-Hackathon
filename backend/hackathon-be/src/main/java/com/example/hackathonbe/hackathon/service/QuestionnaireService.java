@@ -14,6 +14,7 @@ import com.example.hackathonbe.hackathon.repository.QuestionnaireRepository;
 import com.example.hackathonbe.participant.model.Participant;
 import com.example.hackathonbe.participant.repository.ParticipantRepository;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,8 @@ public class QuestionnaireService {
     private final HackathonRepository hackathonRepository;
     private final ParticipantRepository participantRepository;
     private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public QuestionnaireService(
             QuestionnaireRepository questionnaireRepository,
@@ -236,6 +239,7 @@ public class QuestionnaireService {
                 });
 
         qa.setData(answersNode);
+        qa.setConsent(dto.consent());
         questionnaireAnswerRepository.save(qa);
     }
 
@@ -248,18 +252,59 @@ public class QuestionnaireService {
         Hackathon hackathon = hackathonRepository.findById(hackathonId)
                 .orElseThrow(() -> new NotFoundException("Hackathon not found: " + hackathonId));
 
-        Questionnaire questionnaire = hackathon.getQuestionnaire();
-        if (questionnaire == null) {
-            return Collections.emptyList();
-        }
+        Questionnaire questionnaire = getQuestionnaire(hackathonId, hackathon);
+
+        final boolean isInternal = questionnaire.getSource() == QuestionnaireSource.INTERNAL;
+
+        // Resolver/lookup only for INTERNAL
+        final QuestionnaireAnswerResolver resolver = isInternal ? new QuestionnaireAnswerResolver(objectMapper) : null;
+        final Map<String, Map<String, String>> lookup =
+                isInternal ? resolver.buildOptionLookup(questionnaire) : Map.of();
 
         return questionnaireAnswerRepository.findAllByQuestionnaire(questionnaire)
                 .stream()
                 .filter(Objects::nonNull)
-                .map(ParticipantAnswerDto::from)
+                .map(qa -> {
+                    if (qa.getData() == null) {
+                        throw new BadRequestException(
+                                "Questionnaire answer data is missing for participant: " +
+                                        (qa.getParticipant() != null ? qa.getParticipant().getId() : "unknown")
+                        );
+                    }
+
+                    JsonNode answersNode = isInternal
+                            ? resolver.resolveAnswers(qa.getData(), lookup)
+                            : qa.getData();
+
+                    return ParticipantAnswerDto.from(qa, answersNode);
+                })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
+
+
+    private static Questionnaire getQuestionnaire(Long hackathonId, Hackathon hackathon) {
+        Questionnaire questionnaire = hackathon.getQuestionnaire();
+        if (questionnaire == null) {
+            throw new NotFoundException("Questionnaire not found for hackathon: " + hackathonId);
+        }
+        JsonNode root = questionnaire.getQuestions();
+
+        if (questionnaire.getSource() == QuestionnaireSource.INTERNAL) {
+            JsonNode arr = (root != null && root.isArray())
+                    ? root
+                    : (root != null ? root.get("questions") : null);
+
+            if (arr == null || !arr.isArray()) {
+                throw new BadRequestException(
+                        "Internal questionnaire questions JSON is missing or invalid (expected array at root or under 'questions') for hackathon: "
+                                + hackathonId
+                );
+            }
+        }
+        return questionnaire;
+    }
+
 
     /**
      * Edit INTERNAL questionnaire in DRAFT only.

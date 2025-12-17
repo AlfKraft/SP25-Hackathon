@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
+//import { Switch } from '@/components/ui/switch'
 import {
     Loader2,
     Plus,
@@ -696,35 +696,6 @@ export default function AdminHackathonsPage() {
                                 <p className="text-[11px] text-sky-100/60">
                                     Control whether this hackathon is visible or open for registration.
                                 </p>
-                            </div>
-                        )}
-
-                        {formMode === 'create' && (
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-500/40 bg-slate-900/70 px-3 py-2">
-                                    <div>
-                                        <Label className="text-xs text-sky-100">Approval required</Label>
-                                        <p className="text-[11px] text-sky-100/60">
-                                            Organizers must approve each registration.
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        checked={formValues.requireApproval}
-                                        onCheckedChange={checked => handleInputChange('requireApproval', checked)}
-                                    />
-                                </div>
-                                <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-500/40 bg-slate-900/70 px-3 py-2">
-                                    <div>
-                                        <Label className="text-xs text-sky-100">Allow team creation</Label>
-                                        <p className="text-[11px] text-sky-100/60">
-                                            Participants can create teams inside this hackathon.
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        checked={formValues.allowTeamCreation}
-                                        onCheckedChange={checked => handleInputChange('allowTeamCreation', checked)}
-                                    />
-                                </div>
                             </div>
                         )}
 

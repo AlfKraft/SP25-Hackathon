@@ -13,12 +13,13 @@ import type {
 } from '@/types/questionnaire'
 import { QuestionCardShell } from '@/components/questionnaire/QuestionCardShell'
 import { TextQuestionEditor } from '@/components/questionnaire/TextQuestionEditor'
-import { LongTextQuestionEditor } from "@/components/questionnaire/LongTextQuestionEditor";
+import { LongTextQuestionEditor } from '@/components/questionnaire/LongTextQuestionEditor'
 import { SliderQuestionEditor } from '@/components/questionnaire/SliderQuestionEditor'
 import { ChoiceQuestionEditor } from '@/components/questionnaire/ChoiceQuestionEditor'
 import { NumberInputQuestionEditor } from '@/components/questionnaire/NumberInputQuestionEditor'
 import { FloatingAddBar } from '@/components/questionnaire/FloatingAddBar'
-import type {QuestionnaireStatus} from "@/pages/HackathonQuestionnaireAdminPage.tsx";
+import type { QuestionnaireStatus } from '@/pages/HackathonQuestionnaireAdminPage.tsx'
+import { MotivationMatrixSliderEditor } from '@/components/questionnaire/MotivationMatrixSliderEditor.tsx'
 
 interface QuestionnaireMeta {
     id: number
@@ -40,26 +41,36 @@ interface Props {
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
+const NUMERIC_KEYS = new Set(['age', 'years_experience'])
+
+const DEFAULT_LABEL: Record<QuestionKind, string> = {
+    TEXT: 'Short text answer',
+    LONG_TEXT: 'Long text answer',
+    NUMBER_SLIDER: 'Range from x to y',
+    NUMBER_INPUT: 'Numeric answer',
+    SINGLE_CHOICE: 'Choose one option',
+    MULTI_CHOICE: 'Choose one or more options',
+    MOTIVATION_MATRIX_SLIDER: 'Motivation',
+}
+
+const MOTIVATION_DESCRIPTION =
+    `Please indicate your level of agreement with the statement below. Please mind that: 1 = "Not at all", 2 = "To some extent", 3 = "To a moderate extent", 4 = "To a large extent", 5 = "Completely"
+
+To what extent was your decision to participate in this hackathon motivated by... `
+
 function createId() {
     return crypto.randomUUID()
+}
+
+function opt(label: string) {
+    return { id: createId(), label }
 }
 
 function createQuestion(kind: QuestionKind, index: number): Question {
     const base = {
         id: createId(),
         key: `q_${index + 1}`,
-        label:
-            kind === 'TEXT'
-                ? 'Short text answer'
-                    : kind === 'LONG_TEXT' ?
-                        'Long text answer'
-                            : kind === 'NUMBER_SLIDER'
-                                ? 'Range from x to y'
-                                : kind === 'NUMBER_INPUT'
-                                    ? 'Numeric answer'
-                                    : kind === 'SINGLE_CHOICE'
-                                        ? 'Choose one option'
-                                        : 'Choose one or more options',
+        label: DEFAULT_LABEL[kind],
         type: kind,
         required: false,
         description: '',
@@ -70,38 +81,63 @@ function createQuestion(kind: QuestionKind, index: number): Question {
     switch (kind) {
         case 'TEXT':
             return { ...base, type: 'TEXT', maxLength: 255 }
+
         case 'LONG_TEXT':
             return { ...base, type: 'LONG_TEXT', maxLength: 500 }
+
         case 'NUMBER_SLIDER':
             return { ...base, type: 'NUMBER_SLIDER', min: 1, max: 10, step: 1, showValue: true }
+
         case 'NUMBER_INPUT':
             return { ...base, type: 'NUMBER_INPUT', min: 0, max: 120, step: 1 }
+
         case 'SINGLE_CHOICE':
             return {
                 ...base,
                 type: 'SINGLE_CHOICE',
                 randomizeOptions: false,
-                options: [
-                    { id: createId(), label: 'Option 1' },
-                    { id: createId(), label: 'Option 2' },
-                ],
+                options: [opt('Option 1'), opt('Option 2')],
             } satisfies SingleChoiceQuestion
+
         case 'MULTI_CHOICE':
             return {
                 ...base,
                 type: 'MULTI_CHOICE',
                 randomizeOptions: false,
                 maxSelections: undefined,
-                options: [
-                    { id: createId(), label: 'Option 1' },
-                    { id: createId(), label: 'Option 2' },
-                ],
+                options: [opt('Option 1'), opt('Option 2')],
             } satisfies MultiChoiceQuestion
+
+        case 'MOTIVATION_MATRIX_SLIDER':
+            return {
+                ...base,
+                type: 'MOTIVATION_MATRIX_SLIDER',
+                label: 'Motivation',
+                description: MOTIVATION_DESCRIPTION,
+                min: 1,
+                max: 5,
+                step: 1,
+                showValue: true,
+                nullAllowed: true,
+                leftLabel: 'Not at all',
+                rightLabel: 'Completely',
+                rows: [
+                    { key: 'feedback', label: 'Getting immediate feedback' },
+                    { key: 'startup_creation', label: 'Creating a new startup' },
+                    { key: 'first_product', label: 'Building the first version of the startup product' },
+                    { key: 'own_startup', label: 'Working on my startup' },
+                    { key: 'team_skills', label: 'Developing the skills of my startup team' },
+                    { key: 'domain_learning', label: 'Learning about the domain of my startup' },
+                ],
+            }
+
+        default:
+            // Should never happen due to QuestionKind union
+            return base as unknown as Question
     }
 }
 
 function prettifyKey(key: string): string {
-    // e.g. "first_name" -> "First name"
     const withSpaces = key.replace(/[_\-]+/g, ' ')
     return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
@@ -110,7 +146,7 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
     const isImported = meta?.sourceType === 'EXTERNAL_UPLOAD'
     const isPublished = meta?.status === 'PUBLISHED'
     const isLocked = isImported || isPublished
-    // Default: build required core fields + age verification question
+
     const [questions, setQuestions] = useState<Question[]>(() => {
         const coreQuestions = requiredFields.map((key, index) => {
             if (key === 'education') {
@@ -125,12 +161,12 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                     order: index + 1,
                     randomizeOptions: false,
                     options: [
-                        { id: createId(), label: 'High school diploma' },
-                        { id: createId(), label: 'Bachelor degree' },
-                        { id: createId(), label: 'Master degree' },
-                        { id: createId(), label: 'Doctorate' },
-                        { id: createId(), label: 'Prefer not to say' },
-                        { id: createId(), label: 'Other' },
+                        opt('High school diploma'),
+                        opt('Bachelor degree'),
+                        opt('Master degree'),
+                        opt('Doctorate'),
+                        opt('Prefer not to say'),
+                        opt('Other'),
                     ],
                 } satisfies SingleChoiceQuestion
             }
@@ -147,11 +183,11 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                     order: index + 1,
                     randomizeOptions: false,
                     options: [
-                        { id: createId(), label: 'Self-employed' },
-                        { id: createId(), label: 'Employee at a company' },
-                        { id: createId(), label: 'Unemployed' },
-                        { id: createId(), label: 'Prefer not to say' },
-                        { id: createId(), label: 'Other' },
+                        opt('Self-employed'),
+                        opt('Employee at a company'),
+                        opt('Unemployed'),
+                        opt('Prefer not to say'),
+                        opt('Other'),
                     ],
                 } satisfies SingleChoiceQuestion
             }
@@ -164,14 +200,78 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                     type: 'TEXT',
                     required: false,
                     description: 'Please make sure you and your team members use the same team name.',
-                    systemRequired: true,
+                    systemRequired: false,
                     order: index + 1,
                     maxLength: 255,
                 } satisfies TextQuestion
             }
 
-            const numericKeys = new Set(['age', 'years_experience'])
-            const kind: QuestionKind = numericKeys.has(key) ? 'NUMBER_INPUT' :  key === 'motivation' ? 'NUMBER_SLIDER' : 'TEXT'
+            if (key === 'gender') {
+                return {
+                    id: createId(),
+                    key,
+                    label: 'Gender',
+                    type: 'SINGLE_CHOICE',
+                    required: true,
+                    systemRequired: true,
+                    order: index + 1,
+                    randomizeOptions: false,
+                    options: [opt('Male'), opt('Female'), opt('Non-binary'), opt('Prefer not to say'), opt('Other')],
+                } satisfies SingleChoiceQuestion
+            }
+
+            if (key === 'role') {
+                return {
+                    id: createId(),
+                    key,
+                    label: 'Role',
+                    type: 'MULTI_CHOICE',
+                    required: true,
+                    systemRequired: true,
+                    order: index + 1,
+                    randomizeOptions: false,
+                    options: [
+                        opt('Software developer (e.g. Programming skills)'),
+                        opt('Designer (e.g. Front end development, UI design)'),
+                        opt('Marketer (Marketing campaigns, reaching target audience)'),
+                        opt('Business expert (e.g. Managing, entrepreneurship)'),
+                    ],
+                } satisfies MultiChoiceQuestion
+            }
+
+            if (key === 'skills') {
+                return {
+                    id: createId(),
+                    key: 'skills',
+                    label: 'Skills',
+                    description: 'Select the areas you feel comfortable contributing in during the hackathon.',
+                    type: 'MULTI_CHOICE',
+                    required: true,
+                    systemRequired: true,
+                    order: index + 1,
+                    randomizeOptions: false,
+                    maxSelections: undefined,
+                    options: [
+                        opt('Programming (general)'),
+                        opt('Frontend (React / UI implementation)'),
+                        opt('Backend (APIs / databases)'),
+                        opt('Mobile development'),
+                        opt('UI / UX design'),
+                        opt('Data / analytics'),
+                        opt('AI / ML'),
+                        opt('DevOps / cloud / deployment'),
+                        opt('Product thinking / ideation'),
+                        opt('Business / entrepreneurship'),
+                        opt('Marketing / growth'),
+                        opt('Pitching / presentations'),
+                        opt('Project management / facilitation'),
+                        opt('Research / user interviews / validation'),
+                    ],
+                } satisfies MultiChoiceQuestion
+            }
+
+            const kind: QuestionKind =
+                NUMERIC_KEYS.has(key) ? 'NUMBER_INPUT' : key === 'motivation' ? 'MOTIVATION_MATRIX_SLIDER' : 'TEXT'
 
             const base = createQuestion(kind, index)
 
@@ -184,34 +284,16 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
             }
         })
 
-        const ageVerificationQuestion: SingleChoiceQuestion = {
-            id: createId(),
-            key: 'age_verification',
-            label: 'Are you 18 years of age or older?',
-            type: 'SINGLE_CHOICE',
-            required: true,
-            description: 'I am age 18 or older, I have read and understood the previous information and I wish to continue with the hackathon registration. Please only answer "yes" if you agree to all of the aforementioned purpose and use of your data. Answering "no" will still allow you to register for the hackathon, but we will not process your data to support team formation before the hackathon, nor to support entrepreneurial intention.',
-            systemRequired: true,
-            order: coreQuestions.length + 1,
-            randomizeOptions: false,
-            options: [
-                { id: createId(), label: 'Yes, I am 18 or older' },
-                { id: createId(), label: 'No, I am under 18' },
-            ],
-        }
-
-        return [...coreQuestions, ageVerificationQuestion]
+        return [...coreQuestions]
     })
 
     const [initializedFromMeta, setInitializedFromMeta] = useState(false)
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-    // 🔄 Hydrate from existing WEB questionnaire once meta arrives
     useEffect(() => {
         if (initializedFromMeta) return
 
-        // meta === null → 404 case → no questionnaire yet; keep defaults
         if (!meta) {
             setInitializedFromMeta(true)
             return
@@ -221,7 +303,6 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
             setQuestions(meta.questions)
         }
 
-        // For IMPORT we don't care; builder is locked anyway
         setInitializedFromMeta(true)
     }, [meta, initializedFromMeta])
 
@@ -238,8 +319,7 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                     {isImported && (
                         <>
                             <p>
-                                This hackathon uses an imported questionnaire. Its structure is locked and
-                                cannot be edited in the web builder.
+                                This hackathon uses an imported questionnaire. Its structure is locked and cannot be edited in the web builder.
                             </p>
                             <p>
                                 To change it, re-import a new file in the <strong>Import file</strong> tab.
@@ -249,8 +329,7 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
 
                     {isPublished && (
                         <p>
-                            This questionnaire has been <strong>published</strong>. Editing is disabled to
-                            preserve data integrity.
+                            This questionnaire has been <strong>published</strong>. Editing is disabled to preserve data integrity.
                         </p>
                     )}
                 </CardContent>
@@ -293,15 +372,12 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
         setSaveStatus('saving')
         setErrorMsg(null)
         try {
-            const res = await fetch(
-                `${API_URL}/api/admin/hackathons/${hackathonId}/questionnaire/internal`,
-                {
-                    method: 'PUT',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ questions }),
-                },
-            )
+            const res = await fetch(`${API_URL}/api/admin/hackathons/${hackathonId}/questionnaire/internal`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questions }),
+            })
             if (!res.ok) throw new Error(`Status ${res.status}`)
             setSaveStatus('saved')
             setTimeout(() => setSaveStatus('idle'), 2000)
@@ -345,15 +421,16 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                             <ListChecks className="mr-1 h-4 w-4" />
                             Multiple choice
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => addQuestion('MOTIVATION_MATRIX_SLIDER')}>
+                            <SlidersHorizontal className="mr-1 h-4 w-4" />
+                            Motivation matrix
+                        </Button>
                     </div>
                 </CardHeader>
 
                 <CardContent className="space-y-6 text-sm text-sky-100/85">
-                    {/* Required fields info */}
                     <div className="rounded-lg border border-sky-500/30 bg-slate-900/80 p-3 text-xs">
-                        <p className="mb-2 text-sky-200/80">
-                            These keys must exist and be marked as required:
-                        </p>
+                        <p className="mb-2 text-sky-200/80">These keys must exist and be marked as required:</p>
                         <div className="flex flex-wrap gap-2">
                             {requiredFields.map(f => (
                                 <span
@@ -372,12 +449,9 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                         )}
                     </div>
 
-                    {/* Questions */}
                     <div className="space-y-4">
                         {questions.length === 0 && (
-                            <p className="text-xs text-sky-200/70">
-                                No questions yet. Use the buttons above to add a block.
-                            </p>
+                            <p className="text-xs text-sky-200/70">No questions yet. Use the buttons above to add a block.</p>
                         )}
 
                         {questions.map((q, idx) => (
@@ -392,45 +466,37 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                                 onDelete={() => removeQuestion(q.id)}
                             >
                                 {q.type === 'TEXT' && (
-                                    <TextQuestionEditor
-                                        question={q}
-                                        onChange={updated => updateQuestion(q.id, updated)}
-                                    />
+                                    <TextQuestionEditor question={q} onChange={updated => updateQuestion(q.id, updated)} />
                                 )}
+
                                 {q.type === 'LONG_TEXT' && (
-                                    <LongTextQuestionEditor
-                                        question={q}
-                                        onChange={updated => updateQuestion(q.id, updated)}
-                                        />
+                                    <LongTextQuestionEditor question={q} onChange={updated => updateQuestion(q.id, updated)} />
                                 )}
+
                                 {q.type === 'NUMBER_SLIDER' && (
-                                    <SliderQuestionEditor
-                                        question={q}
-                                        onChange={updated => updateQuestion(q.id, updated)}
-                                    />
+                                    <SliderQuestionEditor question={q} onChange={updated => updateQuestion(q.id, updated)} />
                                 )}
+
                                 {(q.type === 'SINGLE_CHOICE' || q.type === 'MULTI_CHOICE') && (
                                     <ChoiceQuestionEditor
                                         question={q}
                                         onChange={updated =>
-                                            updateQuestion(
-                                                q.id,
-                                                updated as SingleChoiceQuestion | MultiChoiceQuestion,
-                                            )
+                                            updateQuestion(q.id, updated as SingleChoiceQuestion | MultiChoiceQuestion)
                                         }
                                     />
                                 )}
+
                                 {q.type === 'NUMBER_INPUT' && (
-                                    <NumberInputQuestionEditor
-                                        question={q}
-                                        onChange={updated => updateQuestion(q.id, updated)}
-                                    />
+                                    <NumberInputQuestionEditor question={q} onChange={updated => updateQuestion(q.id, updated)} />
+                                )}
+
+                                {q.type === 'MOTIVATION_MATRIX_SLIDER' && (
+                                    <MotivationMatrixSliderEditor question={q} onChange={updated => updateQuestion(q.id, updated)} />
                                 )}
                             </QuestionCardShell>
                         ))}
                     </div>
 
-                    {/* Bottom bar */}
                     <div className="mt-4 flex flex-col gap-4 border-t border-sky-500/20 pt-4 lg:flex-row">
                         <div className="flex items-center gap-2">
                             <Button size="sm" onClick={handleSave} disabled={saveStatus === 'saving'}>
@@ -439,12 +505,8 @@ export default function QuestionnaireBuilder({ hackathonId, meta, requiredFields
                                 {saveStatus === 'saved' && 'Saved'}
                                 {saveStatus === 'error' && 'Retry save'}
                             </Button>
-                            {saveStatus === 'saved' && (
-                                <span className="text-xs text-emerald-300">Saved to server.</span>
-                            )}
-                            {saveStatus === 'error' && (
-                                <span className="text-xs text-rose-300">Error: {errorMsg}</span>
-                            )}
+                            {saveStatus === 'saved' && <span className="text-xs text-emerald-300">Saved to server.</span>}
+                            {saveStatus === 'error' && <span className="text-xs text-rose-300">Error: {errorMsg}</span>}
                         </div>
                     </div>
                 </CardContent>

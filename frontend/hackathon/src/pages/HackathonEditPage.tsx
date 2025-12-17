@@ -367,19 +367,6 @@ export default function HackathonEditPage() {
                                         <p className="mt-1 text-xs text-red-300">{fieldErrors.location}</p>
                                     )}
                                 </div>
-
-                                {hackathon && (
-                                    <div className="space-y-1 text-xs text-sky-100/70">
-                                        <p>
-                                            <span className="font-medium text-sky-50">Requires approval: </span>
-                                            {hackathon.requireApproval ? 'Yes' : 'No'}
-                                        </p>
-                                        <p>
-                                            <span className="font-medium text-sky-50">Teams allowed: </span>
-                                            {hackathon.allowTeamCreation ? 'Yes' : 'No'}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2">
