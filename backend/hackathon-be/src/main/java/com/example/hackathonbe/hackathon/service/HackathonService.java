@@ -66,7 +66,8 @@ public class HackathonService {
                 entity.getStartDate(),
                 entity.getEndDate(),
                 entity.getStatus(),
-                entity.getQuestionnaire().getSource()
+                entity.getQuestionnaire().getSource(),
+                entity.getParticipants().size()
         );
     }
 }

@@ -115,6 +115,25 @@ export function QuestionnairePreview({ questions }: Props) {
                                     )}
                                 </div>
                             )}
+                            {q.type === 'MOTIVATION_MATRIX_SLIDER' && (
+                                <div className="space-y-3">
+                                    {q.rows.map(row => (
+                                        <div key={row.key} className="space-y-1">
+                                            <div className="text-xs">{row.label}</div>
+                                            <input
+                                                type="range"
+                                                min={q.min}
+                                                max={q.max}
+                                                step={q.step}
+                                                disabled
+                                                defaultValue={Math.round((q.min + q.max) / 2)}
+                                                className="w-full accent-sky-500"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 ))}

@@ -65,7 +65,8 @@ class HackathonControllerTest {
                 LocalDateTime.of(2025, 1, 10, 9, 0),
                 LocalDateTime.of(2025, 1, 12, 18, 0),
                 HackathonStatus.OPEN,
-                QuestionnaireSource.INTERNAL
+                QuestionnaireSource.INTERNAL,
+                8
         );
     }
 }

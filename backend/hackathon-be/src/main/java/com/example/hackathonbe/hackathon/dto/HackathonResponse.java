@@ -15,7 +15,9 @@ public record HackathonResponse(
     LocalDateTime startDate,
     LocalDateTime endDate,
     HackathonStatus status,
-    QuestionnaireSource questionnaireSource
+    QuestionnaireSource questionnaireSource,
+
+    Integer participantCount
 
 ) {
     public static HackathonResponse fromEntity(Hackathon h) {
@@ -27,7 +29,8 @@ public record HackathonResponse(
             h.getStartDate(),
             h.getEndDate(),
             h.getStatus(),
-            h.getQuestionnaire().getSource()
+            h.getQuestionnaire().getSource(),
+            h.getParticipants().size()
         );
     }
 }

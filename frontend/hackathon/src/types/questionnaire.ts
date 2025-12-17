@@ -6,6 +6,7 @@ export type QuestionKind =
     | 'NUMBER_INPUT'
     | 'SINGLE_CHOICE'
     | 'MULTI_CHOICE'
+    | 'MOTIVATION_MATRIX_SLIDER'
 
 export interface BaseQuestion {
     id: string
@@ -61,6 +62,23 @@ export interface MultiChoiceQuestion extends BaseQuestion {
     maxSelections?: number
 }
 
+export interface MotivationMatrixRow {
+    key: string
+    label: string
+}
+
+export interface MotivationMatrixSliderQuestion extends BaseQuestion {
+    type: 'MOTIVATION_MATRIX_SLIDER'
+    min: number
+    max: number
+    step: number
+    showValue: boolean
+    nullAllowed: boolean
+    leftLabel?: string
+    rightLabel?: string
+    rows: MotivationMatrixRow[]
+}
+
 export type Question =
     | TextQuestion
     | LongTextQuestion
@@ -68,3 +86,4 @@ export type Question =
     | NumberInputQuestion
     | SingleChoiceQuestion
     | MultiChoiceQuestion
+    | MotivationMatrixSliderQuestion

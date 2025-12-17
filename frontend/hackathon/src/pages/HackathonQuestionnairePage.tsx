@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link, useNavigate  } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { API_URL } from '@/lib/config'
 import type { Question } from '@/types/questionnaire'
 import { type AnswerRow, QuestionnaireAnswerForm } from '@/components/questionnaire/QuestionnaireAnswerForm'
 import { Button } from '@/components/ui/button'
 import { IntroCard } from '@/components/questionnaire/IntroCard'
 import { ConsentCard, type ConsentValue } from '@/components/questionnaire/ConsentCard'
-import {readApiError} from "@/types/apiError.ts";
-import {ErrorAlert} from "@/components/common/ErrorAlert.tsx";
+import { readApiError } from '@/types/apiError.ts'
+import { ErrorAlert } from '@/components/common/ErrorAlert.tsx'
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error'
 type Step = 1 | 2 | 3
@@ -15,6 +15,7 @@ type Step = 1 | 2 | 3
 export default function HackathonQuestionnairePage() {
     const navigate = useNavigate()
     const params = useParams()
+
     const hackathonId = useMemo(() => {
         const raw = params.hackathonId
         const n = raw ? Number(raw) : NaN
@@ -28,7 +29,7 @@ export default function HackathonQuestionnairePage() {
 
     const [submitted, setSubmitted] = useState(false)
 
-    // ✅ NEW stepper state
+    // Stepper state
     const [step, setStep] = useState<Step>(1)
     const [consent, setConsent] = useState<ConsentValue | null>(null)
 
@@ -77,17 +78,15 @@ export default function HackathonQuestionnairePage() {
     }, [hackathonId])
 
     const handleBack = () => {
-        // If user is in the internal flow, go back within the flow
         if (!submitted && state === 'ready') {
             if (step === 3) return setStep(2)
             if (step === 2) return setStep(1)
         }
 
-        // Otherwise go back to previous page if possible
         if (window.history.length > 1) {
             navigate(-1)
         } else {
-            navigate('/') // fallback (hackathons list)
+            navigate('/')
         }
     }
 
@@ -102,8 +101,7 @@ export default function HackathonQuestionnairePage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     answers,
-                    // Optional: include consent in payload if your backend wants it
-                    consent: consent === 'YES' ? true : consent === 'NO' ? false : undefined
+                    consent: consent === 'YES' ? true : consent === 'NO' ? false : undefined,
                 }),
             })
 
@@ -146,7 +144,7 @@ export default function HackathonQuestionnairePage() {
     if (submitted) {
         return (
             <div className="mx-auto max-w-2xl">
-                <div className="flex items-start justify-between gap-3 mb-4 md:mb-6">
+                <div className="mb-4 flex items-start justify-between gap-3 md:mb-6">
                     <div className="space-y-1">
                         <h1 className="text-lg font-semibold text-slate-50">Hackathon questionnaire</h1>
                     </div>
@@ -158,8 +156,8 @@ export default function HackathonQuestionnairePage() {
                 <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-emerald-100">
                     <div className="text-sm font-semibold">Submitted ✅</div>
                     <p className="mt-1 text-sm text-emerald-100/90">
-                        Your questionnaire answers have been submitted. If you want to change your answers, please fill
-                        the form again with the same email and submit one more time.
+                        Your questionnaire answers have been submitted. If you want to change your answers, please fill the form
+                        again with the same email and submit one more time.
                     </p>
                 </div>
             </div>
@@ -167,11 +165,13 @@ export default function HackathonQuestionnairePage() {
     }
 
     return (
-        <div className="mx-auto max-w-2xl space-y-4">
+        <div className="mx-auto max-w-6xl space-y-4">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                     <h1 className="text-lg font-semibold text-slate-50">Hackathon questionnaire</h1>
-                    <p className="text-xs text-slate-300">Please answer the questions below. Required fields must be filled in.</p>
+                    <p className="text-xs text-slate-300">
+                        Please answer the questions below. Required fields must be filled in.
+                    </p>
                 </div>
 
                 <Button variant="outline" size="sm" className="shrink-0" onClick={handleBack}>
@@ -179,25 +179,37 @@ export default function HackathonQuestionnairePage() {
                 </Button>
             </div>
 
-            {/* STEP 1: FULL intro + Agree */}
-            {step === 1 && (
-                <IntroCard onAgree={() => setStep(2)} />
-            )}
+            {/* STEP 1 */}
+            {step === 1 && <IntroCard onAgree={() => setStep(2)} />}
 
-            {/* STEP 2: Consent Yes/No + Prev/Next */}
+            {/* STEP 2 */}
             {step === 2 && (
                 <ConsentCard
                     value={consent}
                     onChange={setConsent}
                     onPrev={() => setStep(1)}
-                    onNext={() => setStep(3)}
+                    onNext={() => {
+                        // Consent must be chosen before questionnaire is shown
+                        if (!consent) return
+                        setStep(3)
+                    }}
                 />
             )}
 
-            {/* STEP 3: Questionnaire */}
+            {/* STEP 3 */}
             {step === 3 && (
                 <>
-                    {questions.length === 0 ? (
+                    {/* hard gate: if consent not chosen, don't mount questionnaire at all */}
+                    {!consent ? (
+                        <div className="rounded-lg border border-amber-500/25 bg-amber-950/20 p-4 text-sm text-amber-100">
+                            Please choose your consent option before continuing.
+                            <div className="mt-3">
+                                <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                                    Back to consent
+                                </Button>
+                            </div>
+                        </div>
+                    ) : questions.length === 0 ? (
                         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-200">
                             No questionnaire has been published for this hackathon.
                         </div>
@@ -210,13 +222,6 @@ export default function HackathonQuestionnairePage() {
                                     {submitError}
                                 </div>
                             )}
-
-                            {/* Optional: allow going back to consent from step 3 */}
-                            <div className="flex justify-start">
-                                <Button type="button" variant="outline" onClick={() => setStep(2)}>
-                                    Previous
-                                </Button>
-                            </div>
                         </>
                     )}
                 </>
