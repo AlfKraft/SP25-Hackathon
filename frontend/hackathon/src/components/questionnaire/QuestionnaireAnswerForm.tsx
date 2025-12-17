@@ -452,6 +452,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                         </div>
                     )}
 
+
                     {submitMsg && (
                         <div
                             className={cn(
@@ -523,7 +524,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                         )}
                     </div>
 
-                    {/* Controls */}
+                    {/* Controls (unchanged UI bits, but ensure buttons are type="button") */}
                     <div className="relative space-y-3">
                         {q.type === 'TEXT' && (
                             <div className="space-y-2">
@@ -628,9 +629,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                                 type="button"
                                                 onClick={() => {
                                                     if (disabled) return
-                                                    const next = checked
-                                                        ? selectedArray.filter(v => v !== opt.id)
-                                                        : [...selectedArray, opt.id]
+                                                    const next = checked ? selectedArray.filter(v => v !== opt.id) : [...selectedArray, opt.id]
                                                     setAnswer(q.id, next)
                                                 }}
                                                 className={cn(
