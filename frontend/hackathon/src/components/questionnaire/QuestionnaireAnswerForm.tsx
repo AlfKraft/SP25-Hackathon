@@ -18,7 +18,6 @@ export type AnswerRow = {
     valueBoolean?: boolean | null
     valueOptionId?: string | null
     valueOptionIds?: string[] | null
-
     valueJson?: Record<string, number> | null
 }
 
@@ -152,12 +151,8 @@ function QuestionSideNav({
                                         className={cn(
                                             'ml-2 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
                                             hasError && 'border-rose-500/25 bg-rose-500/10 text-rose-200',
-                                            answered &&
-                                            !hasError &&
-                                            'border-emerald-500/25 bg-emerald-500/10 text-emerald-200',
-                                            !answered &&
-                                            !hasError &&
-                                            'border-slate-800 bg-slate-900/50 text-slate-400'
+                                            answered && !hasError && 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200',
+                                            !answered && !hasError && 'border-slate-800 bg-slate-900/50 text-slate-400'
                                         )}
                                     >
                     {hasError ? '!' : answered ? '✓' : '•'}
@@ -208,28 +203,18 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
 
     const [currentIndex, setCurrentIndex] = useState(0)
 
-    const requiredQuestions = useMemo(
-        () => sortedQuestions.filter(q => q.required),
-        [sortedQuestions]
-    )
+    const requiredQuestions = useMemo(() => sortedQuestions.filter(q => q.required), [sortedQuestions])
 
-    // ✅ Only required questions gate submission
     const allRequiredAnswered = useMemo(() => {
         return requiredQuestions.every(q => isAnswered(q, answersById[q.id]))
     }, [answersById, requiredQuestions])
 
     const answeredCount = useMemo(() => {
-        return sortedQuestions.reduce(
-            (acc, q) => acc + (isAnswered(q, answersById[q.id]) ? 1 : 0),
-            0
-        )
+        return sortedQuestions.reduce((acc, q) => acc + (isAnswered(q, answersById[q.id]) ? 1 : 0), 0)
     }, [answersById, sortedQuestions])
 
     const requiredAnsweredCount = useMemo(() => {
-        return requiredQuestions.reduce(
-            (acc, q) => acc + (isAnswered(q, answersById[q.id]) ? 1 : 0),
-            0
-        )
+        return requiredQuestions.reduce((acc, q) => acc + (isAnswered(q, answersById[q.id]) ? 1 : 0), 0)
     }, [answersById, requiredQuestions])
 
     const progressPct = useMemo(() => {
@@ -337,6 +322,8 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
     }
 
     function handleNext() {
+        // ✅ Explicitly not a submit action.
+        // If you want to block moving forward until current question is answered, we can add that later.
         goToIndexSafe(currentIndex + 1)
     }
 
@@ -347,6 +334,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
 
+        // Even though Submit only appears when complete, validate anyway.
         const validationErrors = validate(answersById)
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors)
@@ -396,12 +384,10 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
     const value = answersById[q.id]
     const answered = isAnswered(q, value)
 
-    const selectedArray =
-        q.type === 'MULTI_CHOICE' && Array.isArray(value) ? (value as string[]) : []
+    const selectedArray = q.type === 'MULTI_CHOICE' && Array.isArray(value) ? (value as string[]) : []
     const maxedOut =
         q.type === 'MULTI_CHOICE' && q.maxSelections ? selectedArray.length >= q.maxSelections : false
 
-    // ✅ unlock submit when required are answered
     const showSubmit = allRequiredAnswered
 
     return (
@@ -458,14 +444,13 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                         </div>
                     )}
 
+
                     {submitMsg && (
                         <div
                             className={cn(
                                 'rounded-xl border px-3 py-2 text-xs backdrop-blur',
-                                submitStatus === 'success' &&
-                                'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-                                submitStatus === 'error' &&
-                                'border-rose-500/30 bg-rose-500/10 text-rose-200',
+                                submitStatus === 'success' && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
+                                submitStatus === 'error' && 'border-rose-500/30 bg-rose-500/10 text-rose-200',
                                 submitStatus === 'idle' && 'border-slate-800 bg-slate-950/80 text-slate-200'
                             )}
                         >
@@ -529,7 +514,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                         )}
                     </div>
 
-                    {/* Controls */}
+                    {/* Controls (unchanged UI bits, but ensure buttons are type="button") */}
                     <div className="relative space-y-3">
                         {q.type === 'TEXT' && (
                             <div className="space-y-2">
@@ -634,9 +619,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                                 type="button"
                                                 onClick={() => {
                                                     if (disabled) return
-                                                    const next = checked
-                                                        ? selectedArray.filter(v => v !== opt.id)
-                                                        : [...selectedArray, opt.id]
+                                                    const next = checked ? selectedArray.filter(v => v !== opt.id) : [...selectedArray, opt.id]
                                                     setAnswer(q.id, next)
                                                 }}
                                                 className={cn(
@@ -686,15 +669,11 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                             typeof current === 'number' ? current : Math.round((q.min + q.max) / 2)
 
                                         return (
-                                            <div
-                                                key={row.key}
-                                                className="space-y-2 rounded-xl border border-slate-800 bg-slate-900/30 p-3"
-                                            >
+                                            <div key={row.key} className="space-y-2 rounded-xl border border-slate-800 bg-slate-900/30 p-3">
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="text-xs font-medium text-slate-100">{row.label}</div>
-
                                                     <div className="shrink-0 rounded-full border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-200">
-                                                        {typeof current === 'number' ? current : q.required ? 'Required' : '—'}
+                                                        {typeof current === 'number' ? current : 'Required'}
                                                     </div>
                                                 </div>
 
@@ -757,6 +736,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                             {submitting ? 'Submitting…' : 'Submit questionnaire'}
                         </Button>
                     ) : (
+                        // last question but not complete: show disabled submit hint
                         <Button type="button" disabled className="cursor-not-allowed">
                             Answer required questions to submit
                         </Button>
