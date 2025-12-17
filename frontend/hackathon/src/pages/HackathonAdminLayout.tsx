@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { API_URL } from '@/lib/config'
 import { Card } from '@/components/ui/card'
-import {Loader2, LayoutDashboard, Users, FileText, Network, Trash2, RefreshCw, ChevronDown, Edit} from 'lucide-react'
+import {Loader2, LayoutDashboard, Users, FileText, Network, Trash2, RefreshCw, ChevronDown, Edit, ClipboardList} from 'lucide-react'
 import {cn} from "@/lib/utils.ts";
 import { useHackathon } from '@/contexts/HackathonContext'
 
@@ -423,6 +423,14 @@ export function HackathonAdminLayout({ children }: PropsWithChildren) {
                             >
                                 <Users className="h-3.5 w-3.5" />
                                 Participants
+                            </button>
+                            <button
+                                className={tabClasses(isActive(`/admin/hackathons/${id}/answers`))}
+                                onClick={() => go(`/admin/hackathons/${id}/answers`)}
+                                disabled={isBusy}
+                            >
+                                <ClipboardList className="h-3.5 w-3.5" />
+                                Answers
                             </button>
                             <button
                                 className={tabClasses(isActive(`/admin/hackathons/${id}/questionnaire`))}

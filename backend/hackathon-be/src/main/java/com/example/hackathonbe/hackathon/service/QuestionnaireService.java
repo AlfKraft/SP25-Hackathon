@@ -3,6 +3,7 @@ package com.example.hackathonbe.hackathon.service;
 import com.example.hackathonbe.common.exceptions.BadRequestException;
 import com.example.hackathonbe.common.exceptions.ConflictException;
 import com.example.hackathonbe.common.exceptions.NotFoundException;
+import com.example.hackathonbe.hackathon.dto.ParticipantAnswerDto;
 import com.example.hackathonbe.hackathon.dto.PublishDto;
 import com.example.hackathonbe.hackathon.dto.QuestionnaireDto;
 import com.example.hackathonbe.hackathon.dto.SubmitQuestionnaireAnswersDto;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class QuestionnaireService {
@@ -236,6 +238,28 @@ public class QuestionnaireService {
         qa.setData(answersNode);
         qa.setConsent(dto.consent());
         questionnaireAnswerRepository.save(qa);
+    }
+
+    /**
+     * Get all submitted answers for a hackathon's questionnaire.
+     * Returns a list of participant answers with their data.
+     */
+    @Transactional(readOnly = true)
+    public List<ParticipantAnswerDto> getAllAnswers(Long hackathonId) {
+        Hackathon hackathon = hackathonRepository.findById(hackathonId)
+                .orElseThrow(() -> new NotFoundException("Hackathon not found: " + hackathonId));
+
+        Questionnaire questionnaire = hackathon.getQuestionnaire();
+        if (questionnaire == null) {
+            return Collections.emptyList();
+        }
+
+        return questionnaireAnswerRepository.findAllByQuestionnaire(questionnaire)
+                .stream()
+                .filter(Objects::nonNull)
+                .map(ParticipantAnswerDto::from)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     /**
