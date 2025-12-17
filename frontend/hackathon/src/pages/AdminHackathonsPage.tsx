@@ -620,20 +620,6 @@ export default function AdminHackathonsPage() {
                                     <p className="mt-1 text-xs text-red-300">{fieldErrors.location}</p>
                                 )}
                             </div>
-                            {formMode === 'create' && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="bannerUrl" className="text-xs text-sky-100">
-                                        Banner URL (optional)
-                                    </Label>
-                                    <Input
-                                        id="bannerUrl"
-                                        value={formValues.bannerUrl}
-                                        onChange={e => handleInputChange('bannerUrl', e.target.value)}
-                                        placeholder="https://…"
-                                        className={baseInputClasses}
-                                    />
-                                </div>
-                            )}
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
