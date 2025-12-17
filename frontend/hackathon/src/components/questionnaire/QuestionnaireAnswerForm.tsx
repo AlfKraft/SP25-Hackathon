@@ -40,7 +40,6 @@ function isAnswered(q: Question, v: unknown): boolean {
 
     if (q.type === 'MOTIVATION_MATRIX_SLIDER') {
         const obj = (v ?? {}) as Record<string, number | null>
-        // complete only when every row has a number
         return q.rows.every(r => typeof obj[r.key] === 'number')
     }
 
@@ -89,7 +88,6 @@ function buildAnswerRow(q: Question, raw: unknown): AnswerRow {
             return { ...base, valueOptionIds: Array.isArray(raw) ? (raw as string[]) : [] }
 
         case 'MOTIVATION_MATRIX_SLIDER': {
-            // ✅ Store structured JSON instead of stringified text
             const map = (raw ?? {}) as Record<string, number | null>
             const cleaned: Record<string, number> = {}
 
@@ -140,7 +138,7 @@ function QuestionSideNav({
                                     !isActive && 'border border-transparent hover:bg-slate-900/60',
                                     hasError && 'text-rose-300',
                                     answered && !hasError && !isActive && 'text-emerald-300',
-                                    !answered && !hasError && !isActive && 'text-slate-300'
+                                    !answered && !hasError && !isActive && 'text-slate-300',
                                 )}
                             >
                                 <div className="flex items-center justify-between gap-2">
@@ -151,8 +149,10 @@ function QuestionSideNav({
                                         className={cn(
                                             'ml-2 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
                                             hasError && 'border-rose-500/25 bg-rose-500/10 text-rose-200',
-                                            answered && !hasError && 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200',
-                                            !answered && !hasError && 'border-slate-800 bg-slate-900/50 text-slate-400'
+                                            answered &&
+                                            !hasError &&
+                                            'border-emerald-500/25 bg-emerald-500/10 text-emerald-200',
+                                            !answered && !hasError && 'border-slate-800 bg-slate-900/50 text-slate-400',
                                         )}
                                     >
                     {hasError ? '!' : answered ? '✓' : '•'}
@@ -214,7 +214,10 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
     }, [answersById, sortedQuestions])
 
     const requiredAnsweredCount = useMemo(() => {
-        return requiredQuestions.reduce((acc, q) => acc + (isAnswered(q, answersById[q.id]) ? 1 : 0), 0)
+        return requiredQuestions.reduce(
+            (acc, q) => acc + (isAnswered(q, answersById[q.id]) ? 1 : 0),
+            0,
+        )
     }, [answersById, requiredQuestions])
 
     const progressPct = useMemo(() => {
@@ -225,6 +228,8 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
     const currentQuestion = sortedQuestions[currentIndex]
     const isFirst = currentIndex === 0
     const isLast = currentIndex === sortedQuestions.length - 1
+
+    const showSubmit = allRequiredAnswered
 
     function setAnswer(questionId: string, value: unknown) {
         setAnswersById(prev => ({ ...prev, [questionId]: value }))
@@ -321,20 +326,24 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
         setCurrentIndex(Math.max(0, Math.min(sortedQuestions.length - 1, idx)))
     }
 
-    function handleNext() {
-        // ✅ Explicitly not a submit action.
-        // If you want to block moving forward until current question is answered, we can add that later.
+    function handleNext(e?: React.MouseEvent) {
+        e?.preventDefault()
         goToIndexSafe(currentIndex + 1)
     }
 
-    function handlePrev() {
+    function handlePrev(e?: React.MouseEvent) {
+        e?.preventDefault()
         goToIndexSafe(currentIndex - 1)
     }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
 
-        // Even though Submit only appears when complete, validate anyway.
+        // 🔒 HARD GUARD: never submit unless we're on the last question AND submission is unlocked
+        if (!isLast || !showSubmit) {
+            return
+        }
+
         const validationErrors = validate(answersById)
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors)
@@ -388,8 +397,6 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
     const maxedOut =
         q.type === 'MULTI_CHOICE' && q.maxSelections ? selectedArray.length >= q.maxSelections : false
 
-    const showSubmit = allRequiredAnswered
-
     return (
         <form onSubmit={handleSubmit} className="flex gap-6">
             <QuestionSideNav
@@ -440,7 +447,8 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
 
                     {!showSubmit && requiredQuestions.length > 0 && (
                         <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-300">
-                            Answer all <span className="font-semibold text-slate-100">required</span> questions to unlock submission.
+                            Answer all <span className="font-semibold text-slate-100">required</span> questions to
+                            unlock submission.
                         </div>
                     )}
 
@@ -449,9 +457,11 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                         <div
                             className={cn(
                                 'rounded-xl border px-3 py-2 text-xs backdrop-blur',
-                                submitStatus === 'success' && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-                                submitStatus === 'error' && 'border-rose-500/30 bg-rose-500/10 text-rose-200',
-                                submitStatus === 'idle' && 'border-slate-800 bg-slate-950/80 text-slate-200'
+                                submitStatus === 'success' &&
+                                'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
+                                submitStatus === 'error' &&
+                                'border-rose-500/30 bg-rose-500/10 text-rose-200',
+                                submitStatus === 'idle' && 'border-slate-800 bg-slate-950/80 text-slate-200',
                             )}
                         >
                             {submitMsg}
@@ -468,13 +478,13 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                             ? 'border-rose-500/40 ring-1 ring-rose-500/20'
                             : answered
                                 ? 'border-sky-500/35 ring-1 ring-sky-500/10'
-                                : 'border-slate-800 hover:border-slate-700'
+                                : 'border-slate-800 hover:border-slate-700',
                     )}
                 >
                     <div
                         className={cn(
                             'pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100',
-                            'bg-gradient-to-br from-sky-500/10 via-transparent to-indigo-500/10'
+                            'bg-gradient-to-br from-sky-500/10 via-transparent to-indigo-500/10',
                         )}
                     />
 
@@ -486,7 +496,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                     ? 'bg-rose-500/15 text-rose-200 ring-rose-500/25'
                                     : answered
                                         ? 'bg-emerald-500/15 text-emerald-200 ring-emerald-500/25'
-                                        : 'bg-sky-500/15 text-sky-200 ring-sky-500/25'
+                                        : 'bg-sky-500/15 text-sky-200 ring-sky-500/25',
                             )}
                             aria-hidden="true"
                         >
@@ -536,7 +546,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                     className={cn(
                         'min-h-[110px] w-full rounded-md border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-100 outline-none',
                         'focus-visible:ring-2 focus-visible:ring-sky-500/20',
-                        error && 'border-rose-500/40 focus-visible:ring-rose-500/20'
+                        error && 'border-rose-500/40 focus-visible:ring-rose-500/20',
                     )}
                     placeholder="Type your answer…"
                     maxLength={q.maxLength}
@@ -586,7 +596,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30',
                                                 selected
                                                     ? 'border-sky-500/40 bg-sky-500/10'
-                                                    : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60'
+                                                    : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60',
                                             )}
                                         >
                                             <span className="text-slate-100">{opt.label}</span>
@@ -595,7 +605,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                                     'flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold',
                                                     selected
                                                         ? 'border-sky-400/50 bg-sky-400/15 text-sky-100'
-                                                        : 'border-slate-700 bg-slate-950 text-slate-400'
+                                                        : 'border-slate-700 bg-slate-950 text-slate-400',
                                                 )}
                                             >
                         {selected ? '✓' : ''}
@@ -629,7 +639,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                                         ? 'border-sky-500/40 bg-sky-500/10'
                                                         : disabled
                                                             ? 'cursor-not-allowed border-slate-800 bg-slate-950/40 opacity-60'
-                                                            : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60'
+                                                            : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60',
                                                 )}
                                             >
                                                 <span className="text-slate-100">{opt.label}</span>
@@ -638,7 +648,7 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                                                         'flex h-5 w-5 items-center justify-center rounded-md border text-[10px] font-bold',
                                                         checked
                                                             ? 'border-sky-400/50 bg-sky-400/15 text-sky-100'
-                                                            : 'border-slate-700 bg-slate-950 text-slate-400'
+                                                            : 'border-slate-700 bg-slate-950 text-slate-400',
                                                     )}
                                                 >
                           {checked ? '✓' : ''}
@@ -650,94 +660,97 @@ export function QuestionnaireAnswerForm({ questions, onSubmit }: Props) {
                             </div>
                         )}
 
-                        {q.type === 'MOTIVATION_MATRIX_SLIDER' && (() => {
-                            const map = (value ?? {}) as Record<string, number | null>
-                            const missingCount = q.rows.filter(r => typeof map[r.key] !== 'number').length
+                        {q.type === 'MOTIVATION_MATRIX_SLIDER' &&
+                            (() => {
+                                const map = (value ?? {}) as Record<string, number | null>
+                                const missingCount = q.rows.filter(r => typeof map[r.key] !== 'number').length
 
-                            return (
-                                <div className="space-y-4">
-                                    {missingCount > 0 && (
-                                        <div className="rounded-xl border border-amber-500/25 bg-amber-950/20 px-3 py-2 text-[11px] text-amber-100">
-                                            Move each slider to confirm your answer.{' '}
-                                            <span className="font-semibold">{missingCount}</span> remaining.
-                                        </div>
-                                    )}
-
-                                    {q.rows.map(row => {
-                                        const current = map[row.key]
-                                        const displayValue =
-                                            typeof current === 'number' ? current : Math.round((q.min + q.max) / 2)
-
-                                        return (
-                                            <div key={row.key} className="space-y-2 rounded-xl border border-slate-800 bg-slate-900/30 p-3">
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="text-xs font-medium text-slate-100">{row.label}</div>
-                                                    <div className="shrink-0 rounded-full border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-200">
-                                                        {typeof current === 'number' ? current : 'Required'}
-                                                    </div>
-                                                </div>
-
-                                                <input
-                                                    type="range"
-                                                    min={q.min}
-                                                    max={q.max}
-                                                    step={q.step}
-                                                    value={displayValue}
-                                                    onChange={e =>
-                                                        setAnswer(q.id, {
-                                                            ...map,
-                                                            [row.key]: Number(e.target.value),
-                                                        })
-                                                    }
-                                                    className={cn('w-full accent-sky-500', error && 'accent-rose-500')}
-                                                />
-
-                                                <div className="flex justify-between text-[10px] text-slate-500">
-                                                    {Array.from({ length: (q.max - q.min) / q.step + 1 }).map((_, i) => {
-                                                        const v = q.min + i * q.step
-                                                        if (v === q.min) return <span key={v}>{q.leftLabel ?? v}</span>
-                                                        if (v === q.max) return <span key={v}>{q.rightLabel ?? v}</span>
-                                                        return <span key={v}>{v}</span>
-                                                    })}
-                                                </div>
-
-                                                {q.nullAllowed && (
-                                                    <div className="flex justify-end">
-                                                        <button
-                                                            type="button"
-                                                            className="text-[11px] text-slate-400 hover:text-slate-200"
-                                                            onClick={() => setAnswer(q.id, { ...map, [row.key]: null })}
-                                                        >
-                                                            Clear
-                                                        </button>
-                                                    </div>
-                                                )}
+                                return (
+                                    <div className="space-y-4">
+                                        {missingCount > 0 && (
+                                            <div className="rounded-xl border border-amber-500/25 bg-amber-950/20 px-3 py-2 text-[11px] text-amber-100">
+                                                Move each slider to confirm your answer. <span className="font-semibold">{missingCount}</span>{' '}
+                                                remaining.
                                             </div>
-                                        )
-                                    })}
-                                </div>
-                            )
-                        })()}
+                                        )}
+
+                                        {q.rows.map(row => {
+                                            const current = map[row.key]
+                                            const displayValue =
+                                                typeof current === 'number' ? current : Math.round((q.min + q.max) / 2)
+
+                                            return (
+                                                <div
+                                                    key={row.key}
+                                                    className="space-y-2 rounded-xl border border-slate-800 bg-slate-900/30 p-3"
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="text-xs font-medium text-slate-100">{row.label}</div>
+                                                        <div className="shrink-0 rounded-full border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-200">
+                                                            {typeof current === 'number' ? current : 'Required'}
+                                                        </div>
+                                                    </div>
+
+                                                    <input
+                                                        type="range"
+                                                        min={q.min}
+                                                        max={q.max}
+                                                        step={q.step}
+                                                        value={displayValue}
+                                                        onChange={e =>
+                                                            setAnswer(q.id, {
+                                                                ...map,
+                                                                [row.key]: Number(e.target.value),
+                                                            })
+                                                        }
+                                                        className={cn('w-full accent-sky-500', error && 'accent-rose-500')}
+                                                    />
+
+                                                    <div className="flex justify-between text-[10px] text-slate-500">
+                                                        {Array.from({ length: (q.max - q.min) / q.step + 1 }).map((_, i) => {
+                                                            const v = q.min + i * q.step
+                                                            if (v === q.min) return <span key={v}>{q.leftLabel ?? v}</span>
+                                                            if (v === q.max) return <span key={v}>{q.rightLabel ?? v}</span>
+                                                            return <span key={v}>{v}</span>
+                                                        })}
+                                                    </div>
+
+                                                    {q.nullAllowed && (
+                                                        <div className="flex justify-end">
+                                                            <button
+                                                                type="button"
+                                                                className="text-[11px] text-slate-400 hover:text-slate-200"
+                                                                onClick={() => setAnswer(q.id, { ...map, [row.key]: null })}
+                                                            >
+                                                                Clear
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )
+                            })()}
                     </div>
                 </div>
 
                 {/* Navigation */}
                 <div className="flex items-center justify-between">
-                    <Button type="button" variant="outline" disabled={isFirst} onClick={handlePrev}>
+                    <Button key="prev" type="button" variant="outline" disabled={isFirst} onClick={handlePrev}>
                         Previous
                     </Button>
 
                     {!isLast ? (
-                        <Button type="button" onClick={handleNext}>
+                        <Button key="next" type="button" onClick={handleNext}>
                             Next
                         </Button>
                     ) : showSubmit ? (
-                        <Button type="submit" disabled={submitting}>
+                        <Button key="submit" type="submit" disabled={submitting}>
                             {submitting ? 'Submitting…' : 'Submit questionnaire'}
                         </Button>
                     ) : (
-                        // last question but not complete: show disabled submit hint
-                        <Button type="button" disabled className="cursor-not-allowed">
+                        <Button key="locked" type="button" disabled className="cursor-not-allowed">
                             Answer required questions to submit
                         </Button>
                     )}
