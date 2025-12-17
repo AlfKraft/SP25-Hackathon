@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from 'react'
 import { API_URL } from '@/lib/config'
 import type { Hackathon, Participant } from '@/types/hackathon'
+import {readApiError} from "@/types/apiError.ts";
 
 interface HackathonContextType {
     hackathons: Hackathon[]
@@ -64,8 +65,7 @@ export function HackathonProvider({ children }: Props) {
                 )
 
                 if (!res.ok) {
-                    const text = await res.text()
-                    throw new Error(text || 'Failed to load participants')
+                    throw new Error(await readApiError(res))
                 }
 
                 const participants: Participant[] = await res.json()

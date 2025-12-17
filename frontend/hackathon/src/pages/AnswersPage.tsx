@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { API_URL } from '@/lib/config'
 import { cn } from '@/lib/utils'
+import {readApiError} from "@/types/apiError.ts";
 
 type AnswerSource = 'INTERNAL' | 'IMPORTED'
 
@@ -267,8 +268,7 @@ export default function AnswersPage() {
                 )
 
                 if (!res.ok) {
-                    const text = await res.text()
-                    throw new Error(text || 'Failed to load answers')
+                    throw new Error(await readApiError(res))
                 }
 
                 const data = await res.json()

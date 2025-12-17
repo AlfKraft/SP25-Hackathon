@@ -33,6 +33,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
+import {readApiError} from "@/types/apiError.ts";
 
 // TODO: adjust to your actual HackathonStatus enum values
 const HACKATHON_STATUSES = ['DRAFT', 'OPEN', 'FINISHED', 'CLOSED'] as const
@@ -125,8 +126,7 @@ export default function AdminHackathonsPage() {
             })
 
             if (!res.ok) {
-                const text = await res.text()
-                throw new Error(text || 'Failed to load admin hackathons')
+                throw new Error(await readApiError(res))
             }
 
             const data: AdminHackathon[] = await res.json()

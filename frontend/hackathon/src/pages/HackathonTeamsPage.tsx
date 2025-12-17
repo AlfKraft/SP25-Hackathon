@@ -8,6 +8,7 @@ import { ArrowLeft, Shuffle, Users, Info, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { TeamsBoard } from '@/components/features/TeamsBoard'
 import { API_URL } from '@/lib/config'
+import {readApiError} from "@/types/apiError.ts";
 
 export interface TeamMember {
     participant: Participant
@@ -96,8 +97,7 @@ export default function HackathonTeamsPage() {
             })
 
             if (!res.ok) {
-                const text = await res.text()
-                throw new Error(text || 'Failed to load teams')
+                throw new Error(await readApiError(res))
             }
 
             const data: Team[] = await res.json()
@@ -138,8 +138,7 @@ export default function HackathonTeamsPage() {
             })
 
             if (!response.ok) {
-                const text = await response.text()
-                throw new Error(text || 'Failed to generate teams')
+                throw new Error(await readApiError(response))
             }
 
             await fetchTeams()
