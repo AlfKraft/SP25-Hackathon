@@ -55,7 +55,6 @@ public class QuestionnaireAnswerResolver {
         if (root == null) return null;
         if (root.isArray()) return root;
 
-        // ✅ your current structure: { "questions": [ ... ] }
         JsonNode inner = root.get("questions");
         return (inner != null && inner.isArray()) ? inner : null;
     }
