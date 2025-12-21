@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-
+import { API_URL } from '@/lib/config';
 interface CSVUploadPopupProps {
   onClose: () => void
   onUploadComplete: (previewId: string) => void
@@ -66,12 +66,12 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
     try {
       const formData = new FormData()
       formData.append('file', selectedFile)
-      
-      const response = await fetch('http://ec2-13-60-173-183.eu-north-1.compute.amazonaws.com/api/upload/validate', {
-        method: 'POST',
+
+        const response = await fetch(`${API_URL}/api/upload/validate`, {
+            method: 'POST',
             body: formData,
             mode: 'cors',
-      })
+        });
       const data = await response.json()
       console.log(data, "data")
       
@@ -267,7 +267,6 @@ export default function CSVUploadPopup({ onClose, onUploadComplete }: CSVUploadP
             </Button>
             <Button 
               onClick={() => onUploadComplete(validationData?.batchPreviewId)}
-              disabled={validationData?.errors.length > 0 || !validationData?.batchPreviewId}
               className="w-1/2 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               Confirm

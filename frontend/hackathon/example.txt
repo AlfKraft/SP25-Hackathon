@@ -1,0 +1,631 @@
+[
+    {
+        "id": "593b09c1-f9fc-4b99-a50b-099770e7420b",
+        "name": "Team 15",
+        "score": 3.4775,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.353247Z",
+        "members": [
+            {
+                "participantId": 35,
+                "role": "data_scientist",
+                "skills": "[]",
+                "motivation": 4,
+                "yearsExperience": 8
+            },
+            {
+                "participantId": 51,
+                "role": "product_manager",
+                "skills": "[]",
+                "motivation": 4,
+                "yearsExperience": 7
+            },
+            {
+                "participantId": 52,
+                "role": "developer",
+                "skills": "\"flask\"];\"spring\";\"matlab\";[\"aws\";\"copywriting\"",
+                "motivation": 4,
+                "yearsExperience": 7
+            },
+            {
+                "participantId": 59,
+                "role": "data_engineer",
+                "skills": "\"sql\";\"django\";\"jira\";[\"flask\";\"cypress\"]",
+                "motivation": 3,
+                "yearsExperience": 7
+            }
+        ]
+    },
+    {
+        "id": "589e5393-4f56-43e2-a2fe-14c10776af2b",
+        "name": "Team 17",
+        "score": 3.1933333333333334,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.354312Z",
+        "members": [
+            {
+                "participantId": 44,
+                "role": "data_engineer",
+                "skills": "\"kafka\"];[\"react\"",
+                "motivation": 4,
+                "yearsExperience": 8
+            },
+            {
+                "participantId": 31,
+                "role": "developer",
+                "skills": "\"playwright\";\"kafka\"];[\"react\"",
+                "motivation": 5,
+                "yearsExperience": 6
+            },
+            {
+                "participantId": 33,
+                "role": "qa",
+                "skills": "[]",
+                "motivation": 5,
+                "yearsExperience": 6
+            },
+            {
+                "participantId": 39,
+                "role": "data_engineer",
+                "skills": "[\"go\";\"spring\"]",
+                "motivation": 5,
+                "yearsExperience": 6
+            }
+        ]
+    },
+    {
+        "id": "8e512246-8310-4a91-b5b0-6d6f0de67e46",
+        "name": "Team 10",
+        "score": 3.0225,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.34767Z",
+        "members": [
+            {
+                "participantId": 63,
+                "role": "data_engineer",
+                "skills": "\"azure\"];[\"html\";\"kanban\";\"gcp\"",
+                "motivation": 2,
+                "yearsExperience": 11
+            },
+            {
+                "participantId": 47,
+                "role": "marketing",
+                "skills": "\"rabbitmq\"];\"vue\";[\"kafka\";\"ui/ux\"",
+                "motivation": 2,
+                "yearsExperience": 9
+            },
+            {
+                "participantId": 65,
+                "role": "ops",
+                "skills": "\"hadoop\"];[\"sql\"",
+                "motivation": 1,
+                "yearsExperience": 10
+            },
+            {
+                "participantId": 68,
+                "role": "data_engineer",
+                "skills": "[\"docker\";\"angular\"];\"vue\";\"go\"",
+                "motivation": 1,
+                "yearsExperience": 10
+            }
+        ]
+    },
+    {
+        "id": "7fc6d6cc-4d19-4a45-b453-1cc2cd486191",
+        "name": "Team 3",
+        "score": 2.9699999999999998,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.344112Z",
+        "members": [
+            {
+                "participantId": 28,
+                "role": "product_manager",
+                "skills": "[]",
+                "motivation": 2,
+                "yearsExperience": 12
+            },
+            {
+                "participantId": 14,
+                "role": "data_scientist",
+                "skills": "[]",
+                "motivation": 1,
+                "yearsExperience": 1
+            },
+            {
+                "participantId": 20,
+                "role": "qa",
+                "skills": "\"elasticsearch\";\"spark\"];\"rabbitmq\";[\"airflow\";\"ui/ux\"",
+                "motivation": 4,
+                "yearsExperience": -2
+            },
+            {
+                "participantId": 40,
+                "role": "ops",
+                "skills": "[]",
+                "motivation": 1,
+                "yearsExperience": 1
+            }
+        ]
+    },
+    {
+        "id": "11dec69e-4742-4466-bbc9-0af5807023a3",
+        "name": "Team 6",
+        "score": 2.885,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.345784Z",
+        "members": [
+            {
+                "participantId": 11,
+                "role": "developer",
+                "skills": "[]",
+                "motivation": 4,
+                "yearsExperience": 9
+            },
+            {
+                "participantId": 34,
+                "role": "designer",
+                "skills": "[]",
+                "motivation": 4,
+                "yearsExperience": 1
+            },
+            {
+                "participantId": 43,
+                "role": "qa",
+                "skills": "[\"spring\";\"django\";\"go\";\"spark\"]",
+                "motivation": 5,
+                "yearsExperience": 0
+            },
+            {
+                "participantId": 45,
+                "role": "marketing",
+                "skills": "[]",
+                "motivation": 1,
+                "yearsExperience": 4
+            }
+        ]
+    },
+    {
+        "id": "9fef73e4-6400-466d-a5a6-d03eade3e855",
+        "name": "Team 13",
+        "score": 2.8449999999999998,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.349549Z",
+        "members": [
+            {
+                "participantId": 22,
+                "role": "developer",
+                "skills": "\"flask\";\"tailwind\";\"jira\";\"graphql\"];[\"mongodb\"",
+                "motivation": 3,
+                "yearsExperience": 9
+            },
+            {
+                "participantId": 36,
+                "role": "data_scientist",
+                "skills": "[\"css\";\"elasticsearch\";\"postgresql\"]",
+                "motivation": 3,
+                "yearsExperience": 6
+            },
+            {
+                "participantId": 50,
+                "role": "qa",
+                "skills": "[]",
+                "motivation": 4,
+                "yearsExperience": 5
+            },
+            {
+                "participantId": 7,
+                "role": "ops",
+                "skills": "\"django\";[\"pandas\";\"docker\"]",
+                "motivation": 4,
+                "yearsExperience": 4
+            }
+        ]
+    },
+    {
+        "id": "c053895b-23c0-4d23-a7b2-6375868a6649",
+        "name": "Team 9",
+        "score": 2.7749999999999995,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.347233Z",
+        "members": [
+            {
+                "participantId": 57,
+                "role": "ops",
+                "skills": "\"rabbitmq\"];[\"figma\"",
+                "motivation": 2,
+                "yearsExperience": 11
+            },
+            {
+                "participantId": 32,
+                "role": "product_manager",
+                "skills": "\"azure\"];[\"c++\";\"java\";\"gcp\"",
+                "motivation": 1,
+                "yearsExperience": 4
+            },
+            {
+                "participantId": 48,
+                "role": "ops",
+                "skills": "[]",
+                "motivation": 2,
+                "yearsExperience": 3
+            },
+            {
+                "participantId": 60,
+                "role": "data_scientist",
+                "skills": "\"scrum\";\"vue\";\"go\"];[\"python\";\"ui/ux\"",
+                "motivation": 2,
+                "yearsExperience": 3
+            }
+        ]
+    },
+    {
+        "id": "03526b1a-df77-470b-bb52-a8dd87bbebda",
+        "name": "Team 12",
+        "score": 2.7225,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.349076Z",
+        "members": [
+            {
+                "participantId": 19,
+                "role": "marketing",
+                "skills": "\"kubernetes\";\"graphql\";\"pandas\"];[\"r\";\"gcp\"",
+                "motivation": 5,
+                "yearsExperience": 7
+            },
+            {
+                "participantId": 1,
+                "role": "developer",
+                "skills": "\"sql\"];[\"python\";\"javascript\"",
+                "motivation": 5,
+                "yearsExperience": 4
+            },
+            {
+                "participantId": 12,
+                "role": "developer",
+                "skills": "[\"typescript\";\"matlab\";\"html\"]",
+                "motivation": 5,
+                "yearsExperience": 4
+            },
+            {
+                "participantId": 15,
+                "role": "qa",
+                "skills": "\"terraform\"];\"react\";\"kanban\";[\"rabbitmq\"",
+                "motivation": 3,
+                "yearsExperience": 6
+            }
+        ]
+    },
+    {
+        "id": "c720b7ae-c804-4429-ba58-aeaa665862b7",
+        "name": "Team 2",
+        "score": 2.67,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.343679Z",
+        "members": [
+            {
+                "participantId": 17,
+                "role": "data_engineer",
+                "skills": "[]",
+                "motivation": 2,
+                "yearsExperience": 12
+            },
+            {
+                "participantId": 54,
+                "role": "data_scientist",
+                "skills": "[\"matlab\";\"airflow\";\"cypress\";\"postgresql\"];\"ui/ux\"",
+                "motivation": 3,
+                "yearsExperience": 1
+            },
+            {
+                "participantId": 3,
+                "role": "data_scientist",
+                "skills": "[]",
+                "motivation": 1,
+                "yearsExperience": 2
+            },
+            {
+                "participantId": 55,
+                "role": "product_manager",
+                "skills": "[\"kubernetes\";\"pandas\"]",
+                "motivation": 1,
+                "yearsExperience": 2
+            }
+        ]
+    },
+    {
+        "id": "57b4f103-2def-411e-b428-a9f7f9525ebf",
+        "name": "Team 7",
+        "score": 2.6463888888888887,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.346199Z",
+        "members": [
+            {
+                "participantId": 37,
+                "role": "ops",
+                "skills": "[]",
+                "motivation": 3,
+                "yearsExperience": 10
+            },
+            {
+                "participantId": 42,
+                "role": "developer",
+                "skills": "[]",
+                "motivation": 3,
+                "yearsExperience": 3
+            },
+            {
+                "participantId": 66,
+                "role": "product_manager",
+                "skills": "[\"postgresql\";\"matlab\";\"python\";\"java\"];\"azure\"",
+                "motivation": 4,
+                "yearsExperience": 2
+            },
+            {
+                "participantId": 67,
+                "role": "qa",
+                "skills": "\"java\";\"matlab\";[\"scrum\";\"ui/ux\"];\"postgresql\"",
+                "motivation": 1,
+                "yearsExperience": 5
+            }
+        ]
+    },
+    {
+        "id": "a4621f44-f8ab-4777-aefe-0f06060fa443",
+        "name": "Team 14",
+        "score": 2.5700000000000003,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.352183Z",
+        "members": [
+            {
+                "participantId": 27,
+                "role": "data_engineer",
+                "skills": "[\"css\";\"azure\"]",
+                "motivation": 2,
+                "yearsExperience": 10
+            },
+            {
+                "participantId": 61,
+                "role": "marketing",
+                "skills": "\"react\"];[\"jira\"",
+                "motivation": 2,
+                "yearsExperience": 10
+            },
+            {
+                "participantId": 62,
+                "role": "data_scientist",
+                "skills": "[\"playwright\";\"express\";\"copywriting\"];\"ui/ux\"",
+                "motivation": 4,
+                "yearsExperience": 8
+            },
+            {
+                "participantId": 25,
+                "role": "ops",
+                "skills": "[\"spark\";\"jira\"]",
+                "motivation": 4,
+                "yearsExperience": 7
+            }
+        ]
+    },
+    {
+        "id": "495b629b-0111-41c4-b874-0d49e41618ec",
+        "name": "Team 11",
+        "score": 2.5225,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.348135Z",
+        "members": [
+            {
+                "participantId": 4,
+                "role": "developer",
+                "skills": "\"rtos\"];[\"c++\";\"embedded\";\"rust\"",
+                "motivation": 3,
+                "yearsExperience": 9
+            },
+            {
+                "participantId": 24,
+                "role": "data_engineer",
+                "skills": "\"redis\";\"figma\";\"copywriting\"];[\"rust\";\"postgresql\"",
+                "motivation": 4,
+                "yearsExperience": 3
+            },
+            {
+                "participantId": 26,
+                "role": "designer",
+                "skills": "[\"matlab\";\"gcp\"];\"go\"",
+                "motivation": 2,
+                "yearsExperience": 5
+            },
+            {
+                "participantId": 41,
+                "role": "ops",
+                "skills": "[\"seo\";\"express\"]",
+                "motivation": 4,
+                "yearsExperience": 3
+            }
+        ]
+    },
+    {
+        "id": "0446ea1d-7bf7-4884-b8ab-d41a2a497754",
+        "name": "Team 4",
+        "score": 2.4912500000000004,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.344519Z",
+        "members": [
+            {
+                "participantId": 53,
+                "role": "ops",
+                "skills": "[\"playwright\";\"python\"]",
+                "motivation": 2,
+                "yearsExperience": 12
+            },
+            {
+                "participantId": 5,
+                "role": "qa",
+                "skills": "\"selenium\"];[\"junit\"",
+                "motivation": 1,
+                "yearsExperience": 0
+            },
+            {
+                "participantId": 6,
+                "role": "qa",
+                "skills": "\"typescript\";[\"docker\";\"airflow\";\"gcp\"]",
+                "motivation": 1,
+                "yearsExperience": 0
+            },
+            {
+                "participantId": 30,
+                "role": "ops",
+                "skills": "\"hadoop\"];\"typescript\";\"sql\";[\"rabbitmq\";\"ui/ux\"",
+                "motivation": 1,
+                "yearsExperience": -1
+            }
+        ]
+    },
+    {
+        "id": "73bd1481-e791-4d50-aadc-9a3c2d2756d3",
+        "name": "Team 1",
+        "score": 2.375,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.342794Z",
+        "members": [
+            {
+                "participantId": 29,
+                "role": "developer",
+                "skills": "\"javascript\"];[\"aws\";\"rabbitmq\"",
+                "motivation": 5,
+                "yearsExperience": 11
+            },
+            {
+                "participantId": 8,
+                "role": "data_engineer",
+                "skills": "\"react\";\"azure\";\"selenium\"];[\"ui/ux\"",
+                "motivation": 5,
+                "yearsExperience": 0
+            },
+            {
+                "participantId": 10,
+                "role": "qa",
+                "skills": "\"javascript\"];\"nuxt\";[\"python\"",
+                "motivation": 4,
+                "yearsExperience": 1
+            },
+            {
+                "participantId": 13,
+                "role": "qa",
+                "skills": "[\"go\";\"playwright\";\"docker\";\"copywriting\"];\"mongodb\"",
+                "motivation": 3,
+                "yearsExperience": 2
+            }
+        ]
+    },
+    {
+        "id": "de8310b8-a566-494c-a577-296c1b29b67e",
+        "name": "Team 8",
+        "score": 2.3024999999999993,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.346754Z",
+        "members": [
+            {
+                "participantId": 56,
+                "role": "marketing",
+                "skills": "[\"spring\";\"matlab\";\"postgresql\"]",
+                "motivation": 3,
+                "yearsExperience": 10
+            },
+            {
+                "participantId": 16,
+                "role": "developer",
+                "skills": "[\"next.js\";\"playwright\";\"figma\";\"cypress\"];\"kafka\"",
+                "motivation": 3,
+                "yearsExperience": 4
+            },
+            {
+                "participantId": 18,
+                "role": "designer",
+                "skills": "[]",
+                "motivation": 4,
+                "yearsExperience": 3
+            },
+            {
+                "participantId": 23,
+                "role": "data_scientist",
+                "skills": "[\"seo\";\"graphql\"]",
+                "motivation": 1,
+                "yearsExperience": 6
+            }
+        ]
+    },
+    {
+        "id": "42062cbf-d267-4c73-8775-d92ae7de5410",
+        "name": "Team 16",
+        "score": 2.01,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.353713Z",
+        "members": [
+            {
+                "participantId": 38,
+                "role": "data_engineer",
+                "skills": "[\"cypress\";\"python\"]",
+                "motivation": 2,
+                "yearsExperience": 10
+            },
+            {
+                "participantId": 46,
+                "role": "designer",
+                "skills": "[\"css\";\"kubernetes\"]",
+                "motivation": 1,
+                "yearsExperience": 7
+            },
+            {
+                "participantId": 58,
+                "role": "product_manager",
+                "skills": "\"angular\"];[\"node.js\"",
+                "motivation": 2,
+                "yearsExperience": 6
+            },
+            {
+                "participantId": 9,
+                "role": "ops",
+                "skills": "[\"express\";\"r\";\"jira\";\"mongodb\"];\"kanban\"",
+                "motivation": 5,
+                "yearsExperience": 2
+            }
+        ]
+    },
+    {
+        "id": "d6bfb70e-d642-42a3-a32c-71b0d20f3e3e",
+        "name": "Team 5",
+        "score": 1.805,
+        "generationId": "84564521-526e-4c53-9833-d563753f3825",
+        "createdAt": "2025-10-28T18:38:46.344985Z",
+        "members": [
+            {
+                "participantId": 64,
+                "role": "ops",
+                "skills": "[\"express\";\"html\"];\"gcp\"",
+                "motivation": 3,
+                "yearsExperience": 11
+            },
+            {
+                "participantId": 2,
+                "role": "developer",
+                "skills": "\"spring\"];[\"java\"",
+                "motivation": 5,
+                "yearsExperience": -1
+            },
+            {
+                "participantId": 21,
+                "role": "developer",
+                "skills": "\"vue\"];[\"kubernetes\"",
+                "motivation": 1,
+                "yearsExperience": 3
+            },
+            {
+                "participantId": 49,
+                "role": "product_manager",
+                "skills": "\"azure\"];\"nuxt\";\"cypress\";[\"kubernetes\"",
+                "motivation": 4,
+                "yearsExperience": 0
+            }
+        ]
+    }
+]

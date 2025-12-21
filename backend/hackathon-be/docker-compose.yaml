@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=hackathon'
+      - 'POSTGRES_PASSWORD=dev'
+      - 'POSTGRES_USER=dev'
+    ports:
+      - '5433:5432'
